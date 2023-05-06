@@ -1,6 +1,6 @@
 # owoTrackVR and moveTrackVR differences
 Instead of using the (Game) Rotation Vector, moveTrackVR will use uncalibrated IMU data, bypassing any phone automated calibration algorithms. 
-By bypassing the phones autoamted calibration algorythms - which differs from phone to phone - and using a static calibration routine instead makes phones orientation data more relaiable.
+Bypassing the phone's automated calibration algorithms - which differ from phone to phone - and using a static calibration routine instead makes phone orientation data more reliable.
 This however will require additional calibration steps and filters in the Server.
 
 # moveTrackVR Android Application
