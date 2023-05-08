@@ -51,28 +51,38 @@
                         android:id="@+id/pickSensor"
                         android:layout_width="match_parent"
                         android:layout_height="wrap_content"
-                        android:text="@string/sensor_select" />
+                        android:text="@string/sensor_available" />
 
-                    <RadioGroup
-                        android:id="@+id/sensorPicker"
+                    <Switch
+                        android:id="@+id/gyroSensorAvailable"
                         android:layout_width="match_parent"
-                        android:layout_height="match_parent">
+                        android:layout_height="48dp"
+                        android:clickable="false"
+                        android:splitTrack="false"
+                        android:text="@string/gyro_sensor"
+                        android:textAlignment="viewStart"
+                        android:visibility="visible" />
 
-                        <RadioButton
-                            android:id="@+id/gameRotationRadio"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:minHeight="48dp"
-                            android:text="@string/game_rotation" />
+                    <Switch
+                        android:id="@+id/accelSensorAvailable"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:clickable="false"
+                        android:splitTrack="false"
+                        android:text="@string/accel_sensor"
+                        android:textAlignment="viewStart"
+                        android:visibility="visible" />
 
-                        <RadioButton
-                            android:id="@+id/magRotationRadio"
-                            android:layout_width="match_parent"
-                            android:layout_height="wrap_content"
-                            android:minHeight="48dp"
-                            android:text="@string/mag_rotation" />
+                    <Switch
+                        android:id="@+id/magSensorAvailable"
+                        android:layout_width="match_parent"
+                        android:layout_height="48dp"
+                        android:clickable="false"
+                        android:splitTrack="false"
+                        android:text="@string/mag_sensor"
+                        android:textAlignment="viewStart"
+                        android:visibility="visible" />
 
-                    </RadioGroup>
                 </LinearLayout>
 
 

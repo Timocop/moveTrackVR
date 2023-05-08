@@ -22,12 +22,12 @@ public class MainActivity extends AppCompatActivity {
 
     public static boolean[] sensor_exist;
     public static boolean getSensorExists(int sensor){
-        if((sensor < 0) || (sensor >= 4)) return false;
+        if((sensor < 0) || (sensor >= 3)) return false;
         return sensor_exist[sensor];
     }
 
     public static boolean hasAnySensorsAtAll(){
-        return getSensorExists(1) || getSensorExists(2);
+        return getSensorExists(0) || getSensorExists(1);
     }
 
 
@@ -40,18 +40,20 @@ public class MainActivity extends AppCompatActivity {
     private void fillSensorArray(){
         SensorManager man = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 
-        sensor_exist = new boolean[4];
+        sensor_exist = new boolean[3];
 
-        sensor_exist[0] = (man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null);
-        sensor_exist[1] = (man.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null);
-
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
-            sensor_exist[2] = (man.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) != null);
-        }else{
-            sensor_exist[2] = false;
-        }
-
-        sensor_exist[3] = (man.getDefaultSensor(Sensor.TYPE_LINEAR_ACCELERATION) != null);
+        sensor_exist[0] = (
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null ||
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
+        );
+        sensor_exist[1] = (
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null ||
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
+        );
+        sensor_exist[2] = (
+                man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED) != null ||
+                man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null
+        );
 
         missingSensorMessage = "";
 
@@ -79,7 +81,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static NavController contr;
 
-    private boolean connectGetMag(String ip, int port){
+    private void connect(String ip, int port){
         SharedPreferences prefs = ConnectFragment.get_prefs(this);
         SharedPreferences.Editor editor = prefs.edit();
 
@@ -90,8 +92,6 @@ public class MainActivity extends AppCompatActivity {
 
 
         contr.navigate(R.id.connectFragment);
-
-        return prefs.getBoolean("magnetometer", true);
     }
 
     private void runDiscovery(){
@@ -99,7 +99,7 @@ public class MainActivity extends AppCompatActivity {
         if(!AutoDiscoverer.discoveryStillNecessary) return;
 
         try {
-            AutoDiscoverer disc = new AutoDiscoverer(this, this::connectGetMag);
+            AutoDiscoverer disc = new AutoDiscoverer(this, this::connect);
             Thread thrd = new Thread(disc::try_discover);
             thrd.start();
         } catch(OutOfMemoryError ignored){}

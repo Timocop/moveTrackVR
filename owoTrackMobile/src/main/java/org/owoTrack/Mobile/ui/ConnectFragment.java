@@ -62,9 +62,6 @@ public class ConnectFragment extends GenericBindingFragment {
     protected void onConnectionStatus(boolean to) {
         if(connect_button != null)
             connect_button.setText(to ? "Disconnect" : "Connect");
-
-        if(magBox != null)
-            magBox.setEnabled(!to);
     }
 
     @Override
@@ -78,7 +75,6 @@ public class ConnectFragment extends GenericBindingFragment {
     Button connect_button = null;
     EditText ipAddrTxt = null;
     EditText portTxt = null;
-    CheckBox magBox = null;
 
     @Override
     public View onCreateView(LayoutInflater inflater, ViewGroup container,
@@ -88,14 +84,12 @@ public class ConnectFragment extends GenericBindingFragment {
         connect_button = curr_view.findViewById(R.id.connectButton);
         ipAddrTxt = curr_view.findViewById(R.id.editIP);
         portTxt = curr_view.findViewById(R.id.editPort);
-        magBox = curr_view.findViewById(R.id.magnetCheckbox);
 
 
         if(!MainActivity.hasAnySensorsAtAll()) {
             connect_button.setEnabled(false);
             ipAddrTxt.setEnabled(false);
             portTxt.setEnabled(false);
-            magBox.setEnabled(false);
 
             TextView statusText = curr_view.findViewById(R.id.statusText);
             statusText.setText(R.string.sensors_missing_all);
@@ -104,7 +98,6 @@ public class ConnectFragment extends GenericBindingFragment {
 
             ipAddrTxt.setText(prefs.getString("ip_address", ""));
             portTxt.setText(String.valueOf(prefs.getInt("port", 6969)));
-            magBox.setChecked(prefs.getBoolean("magnetometer", true));
 
             connect_button.setOnClickListener(v -> onConnect(false));
 
@@ -135,10 +128,6 @@ public class ConnectFragment extends GenericBindingFragment {
         return val;
     }
 
-    private boolean get_mag(){
-        return magBox.isChecked();
-    }
-
     private void onConnect(boolean auto){
         if((service_v != null) && (service_v.is_running())){
             onSetStatus("Killing service...");
@@ -158,7 +147,6 @@ public class ConnectFragment extends GenericBindingFragment {
         }
 
         mainIntent.putExtra("port_no", get_port());
-        mainIntent.putExtra("magnetometer", get_mag());
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             getContext().startForegroundService(mainIntent);
@@ -170,14 +158,13 @@ public class ConnectFragment extends GenericBindingFragment {
     public void save_data(){
         if(!MainActivity.hasAnySensorsAtAll()) return;
 
-        if(ipAddrTxt == null || portTxt == null || magBox == null) return;
+        if(ipAddrTxt == null || portTxt == null) return;
 
         SharedPreferences prefs = get_prefs();
         SharedPreferences.Editor editor = prefs.edit();
 
         editor.putString("ip_address", get_ip_address());
         editor.putInt("port", get_port());
-        editor.putBoolean("magnetometer", get_mag());
 
         editor.apply();
     }

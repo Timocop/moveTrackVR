@@ -19,7 +19,7 @@ import java.nio.ByteBuffer;
 public class AutoDiscoverer {
 
     public interface ConfigSaver {
-        boolean saveAndGetMag(String ip_addr, int port);
+        void save(String ip_addr, int port);
     }
 
     public static boolean discoveryStillNecessary = true;
@@ -41,8 +41,8 @@ public class AutoDiscoverer {
         Intent mainIntent = new Intent(act, TrackingService.class);
         mainIntent.putExtra("ipAddrTxt", addr.getHostAddress());
         mainIntent.putExtra("port_no", port);
-        mainIntent.putExtra("magnetometer", onConnect.saveAndGetMag(addr.getHostAddress(), port));
 
+        onConnect.save(addr.getHostAddress(), port);
 
         // start service
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){

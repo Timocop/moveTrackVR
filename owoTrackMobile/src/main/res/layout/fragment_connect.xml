@@ -29,12 +29,6 @@
         android:inputType="number"
         android:text="6969" />
 
-    <CheckBox
-        android:id="@+id/magnetCheckbox"
-        android:layout_width="match_parent"
-        android:layout_height="wrap_content"
-        android:text="Use Magnetometer" />
-
     <Button
         android:id="@+id/connectButton"
         android:layout_width="match_parent"

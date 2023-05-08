@@ -44,6 +44,13 @@ class UDPPackets {
     static final int ROTATION_DATA = 17;
     static final int MAGENTOMETER_ACCURACY = 18;
 
+    static final int UNCALIBRATED_GYRO = 30;
+    static final int UNCALIBRATED_ACCEL = 31;
+    static final int UNCALIBRATED_MAG = 32;
+    static final int CALIBRATED_GYRO = 33;
+    static final int CALIBRATED_ACCEL = 34;
+    static final int CALIBRATED_MAG = 35;
+
     static final int BUTTON_PUSHED = 60;
     static final int SEND_MAG_STATUS = 61;
     static final int CHANGE_MAG_STATUS = 62;
@@ -352,13 +359,6 @@ public class UDPGyroProviderClient {
                 break;
             }
 
-            case UDPPackets.CHANGE_MAG_STATUS: {
-                char c = buff.getChar();
-                if (listener != null)
-                    listener.change_realtime_geomagnetic(c == 'y');
-                break;
-            }
-
             case UDPPackets.PING_PONG: {
                 sendPacket(buff, msg_len);
                 break;
@@ -429,8 +429,6 @@ public class UDPGyroProviderClient {
 
     int failed_in_series = 0;
     long last_error = 0;
-    boolean magMsgWaiting = false;
-    boolean magMsgContents = false;
 
     Runnable send_task = () -> {
         while (isConnected && !Thread.currentThread().isInterrupted()) {
@@ -441,10 +439,6 @@ public class UDPGyroProviderClient {
     Runnable listen_task = () -> {
             byte[] buffer = new byte[256];
             while (isConnected && !Thread.currentThread().isInterrupted()) {
-                if(magMsgWaiting){
-                    provide_mag_enabled(magMsgContents);
-                    magMsgWaiting = false;
-                }
                 try {
                     socket.setSoTimeout(250);
                     DatagramPacket p = new DatagramPacket(buffer, 256);
@@ -491,7 +485,7 @@ public class UDPGyroProviderClient {
         int battery_level = getBatteryPercentage(service);
         float battery = (float)battery_level / 100.0f;
 
-        int len = 12 + 4;
+        int len = 4 + 8 + 4;
 
         ByteBuffer buff = ByteBuffer.allocate(len);
         buff.putInt(UDPPackets.BATTERY_LEVEL);
@@ -501,14 +495,15 @@ public class UDPGyroProviderClient {
         sendPacket(buff, len);
     }
 
-    private void provide_floats(float[] floats, int len, int msg_type) {
+    private void provide_sensor(long timestamp, float[] floats, int len, int msg_type) {
         if (!isConnected()) return;
 
-        int bytes = 12 + len * 4; // 12b header (int + long)  + floats (4b each)
+        int bytes = 4 + 8 + 8 + (len * 4);
 
         ByteBuffer buff = ByteBuffer.allocate(bytes);
         buff.putInt(msg_type);
         buff.putLong(packet_id);
+        buff.putLong(timestamp);
 
         for (int i = 0; i < len; i++) {
             buff.putFloat(floats[i]);
@@ -520,26 +515,8 @@ public class UDPGyroProviderClient {
 
     }
 
-
-    public void provide_mag_enabled(boolean enabled){
-        int len = 12 + 2;
-        if(!isConnected()){
-            magMsgWaiting = true;
-            magMsgContents = enabled;
-            return;
-        }
-
-        ByteBuffer buff = ByteBuffer.allocate(len);
-        buff.putInt(UDPPackets.SEND_MAG_STATUS);
-        buff.putLong(packet_id++);
-        buff.putChar(enabled ? 'y' : 'n');
-
-        sendPacket(buff, len);
-
-    }
-
     public void button_pushed(){
-        int len = 12 + 1;
+        int len = 4 + 8;
         ByteBuffer buff = ByteBuffer.allocate(len);
         buff.putInt(UDPPackets.BUTTON_PUSHED);
         buff.putLong(packet_id++);
@@ -547,18 +524,28 @@ public class UDPGyroProviderClient {
         sendPacket(buff, len);
     }
 
-    public void provide_gyro(float[] gyro_v){
-        provide_floats(gyro_v,  3, UDPPackets.GYRO);
+    public void provide_un_gyro(long timestamp, float[] gyro_v){
+        provide_sensor(timestamp, gyro_v,  3, UDPPackets.UNCALIBRATED_GYRO);
     }
 
-    public void provide_rot(float[] rot_q){
-        provide_floats(rot_q,  4, UDPPackets.ROTATION);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+    public void provide_un_accel(long timestamp, float[] accel_v){
+        provide_sensor(timestamp, accel_v,  3, UDPPackets.UNCALIBRATED_ACCEL);
     }
 
-    public void provide_accel(float[] accel){
-        provide_floats(accel,  3, UDPPackets.ACCEL);
+    public void provide_un_mag(long timestamp, float[] mag_v){
+        provide_sensor(timestamp, mag_v,  3, UDPPackets.UNCALIBRATED_MAG);
+    }
+
+    public void provide_gyro(long timestamp, float[] gyro_v){
+        provide_sensor(timestamp, gyro_v,  3, UDPPackets.CALIBRATED_GYRO);
+    }
+
+    public void provide_accel(long timestamp, float[] accel_v){
+        provide_sensor(timestamp, accel_v,  3, UDPPackets.CALIBRATED_ACCEL);
+    }
+
+    public void provide_mag(long timestamp, float[] mag_v){
+        provide_sensor(timestamp, mag_v,  3, UDPPackets.CALIBRATED_MAG);
     }
 
     public void set_listener(GyroListener gyroListener) {

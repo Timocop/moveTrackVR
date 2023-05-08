@@ -40,21 +40,30 @@
             android:paddingTop="4pt">
 
             <androidx.fragment.app.FragmentContainerView
-                android:id="@+id/sensorfragment_gamerotation"
+                android:id="@+id/sensorfragment_gyroscope"
                 android:name="org.owoTrack.Mobile.ui.SensorInfoFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                app:sensorID="@integer/game_rotation_vector"
-                app:sensorName="Rotation Sensor" />
+                app:sensorID="@integer/gyroscope_sensor"
+                app:sensorName="Gyroscope" />
 
             <androidx.fragment.app.FragmentContainerView
-                android:id="@+id/sensorfragment_georotation"
+                android:id="@+id/sensorfragment_accelerometer"
                 android:name="org.owoTrack.Mobile.ui.SensorInfoFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
-                app:sensorID="@integer/rotation_vector"
+                app:sensorID="@integer/accelerometer_sensor"
+                app:sensorName="Accelerometer" />
+
+            <androidx.fragment.app.FragmentContainerView
+                android:id="@+id/sensorfragment_magnetometer"
+                android:name="org.owoTrack.Mobile.ui.SensorInfoFragment"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:layout_weight="1"
+                app:sensorID="@integer/magnetometer_sensor"
                 app:sensorName="Magnetometer" />
 
 

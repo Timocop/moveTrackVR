@@ -59,7 +59,6 @@ public class TrackingService extends Service {
         Bundle data = intent.getExtras();
         ip_address = data.getString("ipAddrTxt");
         int port_no = data.getInt("port_no");
-        boolean mag = data.getBoolean("magnetometer", true);
 
         System.out.println("Start command");
         foregroundstuff();
@@ -67,7 +66,7 @@ public class TrackingService extends Service {
         stat = new AppStatus((Service)this);
         client = new UDPGyroProviderClient(stat, this);
         try {
-            listener = new GyroListener((SensorManager)getSystemService(Context.SENSOR_SERVICE), client, stat, mag);
+            listener = new GyroListener((SensorManager)getSystemService(Context.SENSOR_SERVICE), client, stat);
         } catch (Exception e) {
             stat.update("on GyroListener: " + e.toString());
             on_death.run();
@@ -258,9 +257,9 @@ public class TrackingService extends Service {
         PendingIntent pendingIntent = PendingIntent.getBroadcast(this, 0, intent, PendingIntent.FLAG_IMMUTABLE);
 
         Notification notification = new NotificationCompat.Builder(this, "NOTIFICATION_CHANNEL_ID")
-                .setContentTitle("owoTrackVR")
-                .setTicker("owoTrackVR")
-                .setContentText("owoTrack service is running")
+                .setContentTitle("moveTrackVR")
+                .setTicker("moveTrackVR")
+                .setContentText("moveTrack service is running")
                 .setSmallIcon(R.mipmap.ic_launcher)
                 .addAction(0, "Stop", pendingIntent)
                 .setOngoing(true).build();

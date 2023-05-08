@@ -53,7 +53,6 @@ public class homeMenu extends Fragment {
         Intent mainIntent = new Intent(getContext(), TrackingService.class);
         mainIntent.putExtra("ipAddrTxt", "255.255.255.255");
         mainIntent.putExtra("port_no", 6969);
-        mainIntent.putExtra("magnetometer", false);
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             getContext().startForegroundService(mainIntent);

@@ -45,14 +45,15 @@ public class MainWear extends Activity {
 
     private Lock connecting_lock = new ReentrantLock();
 
-    boolean game_rotation_exists;
-    boolean norm_rotation_exists;
+    boolean gyro_exist;
+    boolean accel_exist;
+    boolean mag_exist;
 
     boolean connecting;
     boolean connected;
 
 
-    private void onSetStatus(String to){;
+    private void onSetStatus(String to){
         if(to.contains("Service not start")) return;
 
         String[] lines = to.split("\n");
@@ -62,26 +63,37 @@ public class MainWear extends Activity {
         });
     }
 
-    private void onSetStatus(int rid){;
+    private void onSetStatus(int rid){
         onSetStatus(getString(rid));
     }
 
 
     private void onConnectionStatus(boolean to){
         setConnectedStatus(connecting, to);
-    };
+    }
 
     private void updateSensorStatus(){
         SensorManager man = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 
-        game_rotation_exists = (man.getDefaultSensor(Sensor.TYPE_GAME_ROTATION_VECTOR) != null);
-        norm_rotation_exists = (man.getDefaultSensor(Sensor.TYPE_ROTATION_VECTOR) != null);
+        gyro_exist = (
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null ||
+                        man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
+        );
+        accel_exist = (
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null ||
+                        man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
+        );
+        mag_exist = (
+                man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED) != null ||
+                        man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null
+        );
 
         this.runOnUiThread(() -> {
-            binding.gameRotationRadio.setEnabled(game_rotation_exists);
-            binding.magRotationRadio.setEnabled(norm_rotation_exists);
+            binding.gyroSensorAvailable.setEnabled(gyro_exist);
+            binding.accelSensorAvailable.setEnabled(accel_exist);
+            binding.magSensorAvailable.setEnabled(mag_exist);
 
-            dead_no_sensors = (!game_rotation_exists) && (!norm_rotation_exists);
+            dead_no_sensors = (!gyro_exist) && (!accel_exist);
             if (dead_no_sensors) {
                 binding.yesSensorsLayout.setVisibility(View.GONE);
                 binding.noSensorsLayout.setVisibility(View.VISIBLE);
@@ -131,9 +143,6 @@ public class MainWear extends Activity {
             binding.editIpAddr.setText(prefs.getString("ip", ""));
             binding.editPort.setText(String.valueOf(prefs.getInt("port", 6969)));
             binding.autodiscover.setChecked(prefs.getBoolean("autodiscover", true));
-
-            binding.gameRotationRadio.setChecked(prefs.getBoolean("game-c", false));
-            binding.magRotationRadio.setChecked(prefs.getBoolean("mag-c", false));
         });
     }
 
@@ -147,9 +156,6 @@ public class MainWear extends Activity {
         }catch(NumberFormatException ignored){}
 
         editor.putBoolean("autodiscover", binding.autodiscover.isChecked());
-
-        editor.putBoolean("game-c", binding.gameRotationRadio.isChecked());
-        editor.putBoolean("mag-c", binding.magRotationRadio.isChecked());
 
         editor.apply();
     }
@@ -204,27 +210,6 @@ public class MainWear extends Activity {
         });
     }
 
-    private boolean getMagUsage(){
-        boolean use_mag;
-
-        // select the first available sensor that's either checked or is available
-        boolean mag_enabled = binding.magRotationRadio.isChecked();
-        boolean mag_disabled = binding.gameRotationRadio.isChecked();
-        if (!mag_enabled && !mag_disabled) {
-            if (norm_rotation_exists) {
-                binding.magRotationRadio.setChecked(true);
-                use_mag = true;
-            } else {
-                binding.gameRotationRadio.setChecked(true);
-                use_mag = false;
-            }
-        } else {
-            use_mag = mag_enabled;
-        }
-
-        return use_mag;
-    }
-
     private void doBinding(boolean is_bound){
         if(is_bound){
             Intent intent = new Intent(this, TrackingService.class);
@@ -277,13 +262,12 @@ public class MainWear extends Activity {
     };
 
 
-    private void connect(String ip, int port, boolean mag){
+    private void connect(String ip, int port){
         onConnectionStatus(true);
 
         Intent mainIntent = new Intent(this, TrackingService.class);
         mainIntent.putExtra("ipAddrTxt", ip);
         mainIntent.putExtra("port_no", port);
-        mainIntent.putExtra("magnetometer", mag);
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             this.startForegroundService(mainIntent);
@@ -313,12 +297,10 @@ public class MainWear extends Activity {
 
         boolean server_found = false;
         try {
-            boolean use_mag = getMagUsage();
-
             onSetStatus(R.string.searching);
 
             if(isAutoDiscover) {
-                this.connect("255.255.255.255", 6969, use_mag);
+                this.connect("255.255.255.255", 6969);
             }else{
                 Pair<String, Integer> ipPort = getIpPort();
                 if(ipPort.first.length() < 3){
@@ -327,7 +309,7 @@ public class MainWear extends Activity {
                 }
 
                 server_found = true;
-                this.connect(ipPort.first, ipPort.second, use_mag);
+                this.connect(ipPort.first, ipPort.second);
             }
         }finally{
             connecting_lock.unlock();
