@@ -1,4 +1,4 @@
-include ':owoTrackLib'
-rootProject.name = "owoTrack"
-include ':owoTrackMobile'
-include ':owoTrackWear'
+include ':moveTrackLib'
+rootProject.name = "moveTrack"
+include ':moveTrackMobile'
+include ':moveTrackWear'

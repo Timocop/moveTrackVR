@@ -6,7 +6,7 @@ android {
     compileSdkVersion 31
 
     defaultConfig {
-        applicationId "org.ovrgyrotrackersync"
+        applicationId 'org.movevrtrackersync'
         minSdkVersion 16
         targetSdkVersion 31
         versionCode 19
@@ -44,7 +44,7 @@ dependencies {
     implementation "androidx.navigation:navigation-dynamic-features-fragment:$nav_version"
 
     implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+    implementation project(':moveTrackLib')
 
 
-    implementation project(":owoTrackLib")
 }
