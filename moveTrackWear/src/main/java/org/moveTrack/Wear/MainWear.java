@@ -1,4 +1,4 @@
-package org.owoTrack.Wear;
+package org.moveTrack.Wear;
 
 import android.app.Activity;
 import android.content.BroadcastReceiver;
@@ -17,21 +17,15 @@ import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.IBinder;
-import android.os.VibrationEffect;
-import android.os.Vibrator;
-import android.text.Editable;
-import android.text.TextWatcher;
 import android.util.Pair;
-import android.view.MotionEvent;
 import android.view.View;
 import android.widget.TextView;
 
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import org.owoTrack.AutoDiscoverer;
-import org.owoTrack.Handshaker;
-import org.owoTrack.TrackingService;
-import org.owoTrack.Wear.databinding.ActivityMainwearBinding;
+import org.moveTrack.Handshaker;
+import org.moveTrack.TrackingService;
+import org.moveTrack.Wear.databinding.ActivityMainwearBinding;
 
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;

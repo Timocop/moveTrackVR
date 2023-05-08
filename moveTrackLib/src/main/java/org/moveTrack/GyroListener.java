@@ -1,12 +1,10 @@
-package org.owoTrack;
+package org.moveTrack;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
-
-import org.owoTrack.math.Quaternion;
 
 public class GyroListener implements SensorEventListener {
     private SensorManager sensorManager;

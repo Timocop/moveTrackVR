@@ -1,4 +1,4 @@
-package org.owoTrack.math;
+package org.moveTrack.math;
 
 public final class Vector3 {
     private double x,y,z;

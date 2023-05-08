@@ -1,4 +1,4 @@
-package org.owoTrack.Mobile.ui;
+package org.moveTrack.Mobile.ui;
 
 import android.content.Intent;
 import android.os.Build;
@@ -12,9 +12,9 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
 
-import org.owoTrack.Mobile.MainActivity;
-import org.owoTrack.Mobile.R;
-import org.owoTrack.TrackingService;
+import org.moveTrack.Mobile.MainActivity;
+import org.moveTrack.Mobile.R;
+import org.moveTrack.TrackingService;
 
 public class homeMenu extends Fragment {
 

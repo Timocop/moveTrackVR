@@ -1,6 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="org.owoTrack.Wear">
+    package="org.moveTrack.Wear">
 
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <uses-permission android:name="android.permission.INTERNET" />
@@ -32,7 +32,7 @@
             android:value="true" />
 
         <activity
-            android:name=".MainWear"
+            android:name="org.moveTrack.Wear.MainWear"
             android:exported="true"
             android:label="@string/app_name">
             <intent-filter>
@@ -44,7 +44,7 @@
 
         <service
             android:label="Tracking Service"
-            android:name="org.owoTrack.TrackingService"
+            android:name="org.moveTrack.TrackingService"
             android:enabled="true"
             android:stopWithTask="false">
 

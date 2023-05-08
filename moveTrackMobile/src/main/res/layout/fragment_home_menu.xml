@@ -41,7 +41,7 @@
 
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/sensorfragment_gyroscope"
-                android:name="org.owoTrack.Mobile.ui.SensorInfoFragment"
+                android:name="org.moveTrack.Mobile.ui.SensorInfoFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -50,7 +50,7 @@
 
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/sensorfragment_accelerometer"
-                android:name="org.owoTrack.Mobile.ui.SensorInfoFragment"
+                android:name="org.moveTrack.Mobile.ui.SensorInfoFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"
@@ -59,7 +59,7 @@
 
             <androidx.fragment.app.FragmentContainerView
                 android:id="@+id/sensorfragment_magnetometer"
-                android:name="org.owoTrack.Mobile.ui.SensorInfoFragment"
+                android:name="org.moveTrack.Mobile.ui.SensorInfoFragment"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:layout_weight="1"

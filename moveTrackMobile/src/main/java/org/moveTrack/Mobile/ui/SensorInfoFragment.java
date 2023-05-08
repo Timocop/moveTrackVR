@@ -1,4 +1,4 @@
-package org.owoTrack.Mobile.ui;
+package org.moveTrack.Mobile.ui;
 
 import android.content.Context;
 import android.content.res.TypedArray;
@@ -13,8 +13,8 @@ import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
 
-import org.owoTrack.Mobile.MainActivity;
-import org.owoTrack.Mobile.R;
+import org.moveTrack.Mobile.MainActivity;
+import org.moveTrack.Mobile.R;
 
 /**
  * A simple {@link Fragment} subclass.

@@ -1,4 +1,4 @@
-package org.owoTrack.Mobile.ui;
+package org.moveTrack.Mobile.ui;
 
 import android.content.BroadcastReceiver;
 import android.content.ComponentName;
@@ -13,8 +13,8 @@ import android.view.View;
 import androidx.fragment.app.Fragment;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
-import org.owoTrack.Mobile.MainActivity;
-import org.owoTrack.TrackingService;
+import org.moveTrack.Mobile.MainActivity;
+import org.moveTrack.TrackingService;
 
 import static android.content.Context.BIND_AUTO_CREATE;
 

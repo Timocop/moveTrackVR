@@ -1,4 +1,4 @@
-package org.owoTrack.Mobile;
+package org.moveTrack.Mobile;
 
 
 import androidx.appcompat.app.AppCompatActivity;
@@ -10,13 +10,12 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
-import android.os.Build;
 import android.os.Bundle;
 
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import org.owoTrack.*;
-import org.owoTrack.Mobile.ui.ConnectFragment;
+import org.moveTrack.*;
+import org.moveTrack.Mobile.ui.ConnectFragment;
 
 public class MainActivity extends AppCompatActivity {
 

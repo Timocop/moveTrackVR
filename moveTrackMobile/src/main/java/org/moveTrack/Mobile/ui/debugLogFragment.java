@@ -1,4 +1,4 @@
-package org.owoTrack.Mobile.ui;
+package org.moveTrack.Mobile.ui;
 
 import android.os.Bundle;
 
@@ -8,8 +8,8 @@ import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 
-import org.owoTrack.AppStatus;
-import org.owoTrack.Mobile.R;
+import org.moveTrack.AppStatus;
+import org.moveTrack.Mobile.R;
 
 /**
  * A simple {@link Fragment} subclass.

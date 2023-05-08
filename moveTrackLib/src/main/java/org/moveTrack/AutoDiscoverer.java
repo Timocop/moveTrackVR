@@ -1,9 +1,8 @@
-package org.owoTrack;
+package org.moveTrack;
 
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.view.WindowManager;
 
