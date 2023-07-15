@@ -1,5 +1,7 @@
+![moveTrackLogo](https://github.com/Timocop/moveTrackVR/assets/22834512/b2c49134-e064-408c-800b-4175f71689d9)
+
 # owoTrackVR and moveTrackVR differences
-Instead of using the (Game) Rotation Vector like owoTrack does, moveTrackVR will use calibrated sensor data, bypassing any phone automated calibration algorithms. 
+Instead of using the (Game) Rotation Vector like owoTrack does, moveTrackVR will use un/calibrated sensor data, bypassing any phone automated calibration algorithms. 
 Bypassing the phone's automated calibration algorithms - which differ from phone to phone - and instead using a Madgwick filter makes phone orientation data more reliable.
 
 # moveTrackVR Android Application
