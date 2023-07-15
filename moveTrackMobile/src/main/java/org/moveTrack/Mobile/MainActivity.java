@@ -42,17 +42,14 @@ public class MainActivity extends AppCompatActivity {
         sensor_exist = new boolean[3];
 
         sensor_exist[0] = (
-                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null ||
-                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null ||
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null
         );
         sensor_exist[1] = (
-                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null ||
-                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null ||
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null
         );
-        sensor_exist[2] = (
-                man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED) != null ||
-                man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null
-        );
+        sensor_exist[2] = man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null;
 
         missingSensorMessage = "";
 

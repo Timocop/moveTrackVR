@@ -70,17 +70,14 @@ public class MainWear extends Activity {
         SensorManager man = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
 
         gyro_exist = (
-                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null ||
-                        man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null ||
+                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null
         );
         accel_exist = (
-                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null ||
-                        man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null ||
+                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null
         );
-        mag_exist = (
-                man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED) != null ||
-                        man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null
-        );
+        mag_exist = man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null;
 
         this.runOnUiThread(() -> {
             binding.gyroSensorAvailable.setEnabled(gyro_exist);

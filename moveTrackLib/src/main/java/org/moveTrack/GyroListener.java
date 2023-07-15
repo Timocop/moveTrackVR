@@ -6,7 +6,12 @@ import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
 
+import org.moveTrack.math.MadgwickAHRS;
+
 public class GyroListener implements SensorEventListener {
+    private static final float NS2S = 1.0f / 1000000000.0f;
+    private static final float MADGWICK_BETA = 0.2f;
+
     private SensorManager sensorManager;
 
     private Sensor GyroSensor;
@@ -16,51 +21,64 @@ public class GyroListener implements SensorEventListener {
 
     private float[] rotation_quat;
     private float[] gyro_vec;
+    private float[] accel_vec;
+    private float[] mag_vec;
+
+    private float last_gyro_timestamp;
 
     private int ROTATION_SENSOR_TYPE;
 
     private String sensor_type = "";
+
+    private MadgwickAHRS filter_madgwick;
 
     UDPGyroProviderClient udpClient;
 
     GyroListener(SensorManager manager, UDPGyroProviderClient udpClient_v, AppStatus logger) throws Exception {
         sensorManager = manager;
 
-        GyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
+        GyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         if(GyroSensor == null) {
-            GyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
+            GyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED);
             if(GyroSensor == null) {
                 logger.update("Gyroscope sensor could not be found, this data will be unavailable.");
             }
             else {
-                logger.update("Uncalibrated gyroscope sensor could not be found, using calibrated gyroscope sensor instead.");
+                logger.update("Uncalibrated gyroscope sensor found! Might cause sensor drift!");
             }
         }
+        else {
+            logger.update("Gyroscope sensor found!");
+        }
 
-        AccelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
+        AccelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         if(AccelSensor == null) {
-            AccelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            AccelSensor = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED);
             if(AccelSensor == null) {
                 logger.update("Accelerometer sensor could not be found, this data will be unavailable.");
             }
             else {
-                logger.update("Uncalibrated accelerometer sensor could not be found, using calibrated accelerometer sensor instead.");
+                logger.update("Uncalibrated accelerometer sensor found! Might cause sensor drift!");
             }
         }
+        else {
+            logger.update("Accelerometer sensor found!");
+        }
 
-        MagSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED);
+        MagSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         if(MagSensor == null) {
-            MagSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-            if(MagSensor == null) {
-                logger.update("Magnetometer sensor could not be found, this data will be unavailable.");
-            }
-            else {
-                logger.update("Uncalibrated magnetometer sensor could not be found, using calibrated magnetometer sensor instead.");
-            }
+            logger.update("Magnetometer sensor could not be found, this data will be unavailable.");
+        }
+        else {
+            logger.update("Magnetometer sensor found!");
         }
 
         rotation_quat = new float[4];
         gyro_vec = new float[3];
+        accel_vec = new float[3];
+        mag_vec = new float[3];
+        last_gyro_timestamp = 0;
+        filter_madgwick = new MadgwickAHRS(0.0f, MADGWICK_BETA);
 
         udpClient = udpClient_v;
         udpClient.set_listener(this);
@@ -80,49 +98,109 @@ public class GyroListener implements SensorEventListener {
 
     @Override
     public void onSensorChanged(SensorEvent event) {
-        if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE_UNCALIBRATED){
+        if(event.timestamp == 0)
+            return;
+
+        if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
             float[] vec = new float[3];
             vec[0] = event.values[0];
             vec[1] = event.values[1];
             vec[2] = event.values[2];
 
-            udpClient.provide_un_gyro(event.timestamp, vec);
-        }else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER_UNCALIBRATED){
-            float[] vec = new float[3];
-            vec[0] = event.values[0];
-            vec[1] = event.values[1];
-            vec[2] = event.values[2];
-
-            udpClient.provide_un_accel(event.timestamp, vec);
-        }else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED){
-            float[] vec = new float[3];
-            vec[0] = event.values[0];
-            vec[1] = event.values[1];
-            vec[2] = event.values[2];
-
-            udpClient.provide_un_mag(event.timestamp, vec);
-        }else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE){
-            float[] vec = new float[3];
-            vec[0] = event.values[0];
-            vec[1] = event.values[1];
-            vec[2] = event.values[2];
+            gyro_vec = vec;
 
             udpClient.provide_gyro(event.timestamp, vec);
-        }else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
+
+            if(last_gyro_timestamp != 0) {
+                updateMadgwick(event.timestamp);
+            }
+
+            last_gyro_timestamp = event.timestamp;
+        }
+        else if(event.sensor.getType() == Sensor.TYPE_GYROSCOPE_UNCALIBRATED){
             float[] vec = new float[3];
             vec[0] = event.values[0];
             vec[1] = event.values[1];
             vec[2] = event.values[2];
 
-            udpClient.provide_accel(event.timestamp, vec);
-        }else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
+            gyro_vec = vec;
+
+            udpClient.provide_uncalib_gyro(event.timestamp, vec);
+
+            if(last_gyro_timestamp != 0) {
+                updateMadgwick(event.timestamp);
+            }
+
+            last_gyro_timestamp = event.timestamp;
+        }
+        else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER){
             float[] vec = new float[3];
             vec[0] = event.values[0];
             vec[1] = event.values[1];
             vec[2] = event.values[2];
+
+            accel_vec = vec;
+
+            udpClient.provide_accel(event.timestamp, vec);
+        }
+        else if(event.sensor.getType() == Sensor.TYPE_ACCELEROMETER_UNCALIBRATED){
+            float[] vec = new float[3];
+            vec[0] = event.values[0];
+            vec[1] = event.values[1];
+            vec[2] = event.values[2];
+
+            accel_vec = vec;
+
+            udpClient.provide_uncalib_accel(event.timestamp, vec);
+        }
+        else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD){
+            float[] vec = new float[3];
+            vec[0] = event.values[0];
+            vec[1] = event.values[1];
+            vec[2] = event.values[2];
+
+            mag_vec = vec;
 
             udpClient.provide_mag(event.timestamp, vec);
         }
+        else if(event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED){
+            float[] vec = new float[3];
+            vec[0] = event.values[0];
+            vec[1] = event.values[1];
+            vec[2] = event.values[2];
+
+            mag_vec = vec;
+
+            udpClient.provide_uncalib_mag(event.timestamp, vec);
+        }
+    }
+
+    private void updateMadgwick(long timeStamp)
+    {
+        final float deltaTime = (timeStamp - last_gyro_timestamp) * NS2S;
+
+        filter_madgwick.setSamplePeriod(deltaTime);
+
+        if(MagSensor != null) {
+            filter_madgwick.update(
+                    gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                    accel_vec[0], accel_vec[1], accel_vec[2],
+                    mag_vec[0], mag_vec[1], mag_vec[2]);
+        }
+        else {
+            filter_madgwick.update(
+                    gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                    accel_vec[0], accel_vec[1], accel_vec[2]);
+        }
+
+        float[] quat = filter_madgwick.getQuaternion();
+        float[] swapQuat = new float[4];
+        swapQuat[0] = quat[1];
+        swapQuat[1] = quat[2];
+        swapQuat[2] = quat[3];
+        swapQuat[3] = quat[0];
+
+        udpClient.provide_rot(timeStamp, swapQuat);
     }
 
     @Override
