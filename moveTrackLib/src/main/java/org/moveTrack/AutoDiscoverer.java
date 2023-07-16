@@ -3,6 +3,7 @@ package org.moveTrack;
 import android.app.Activity;
 import android.content.DialogInterface;
 import android.content.Intent;
+import android.graphics.Bitmap;
 import android.os.Build;
 import android.view.WindowManager;
 
@@ -16,9 +17,14 @@ import java.nio.ByteBuffer;
 
 
 public class AutoDiscoverer {
+    public static class ConfigSettings
+    {
+        public boolean magnetometerEnabled;
+        public float madgwickBeta;
+    }
 
     public interface ConfigSaver {
-        void save(String ip_addr, int port);
+        ConfigSettings saveLoad(String ip_addr, int port);
     }
 
     public static boolean discoveryStillNecessary = true;
@@ -41,7 +47,10 @@ public class AutoDiscoverer {
         mainIntent.putExtra("ipAddrTxt", addr.getHostAddress());
         mainIntent.putExtra("port_no", port);
 
-        onConnect.save(addr.getHostAddress(), port);
+        ConfigSettings configSettings = onConnect.saveLoad(addr.getHostAddress(), port);
+
+        mainIntent.putExtra("magnetometer", configSettings.magnetometerEnabled);
+        mainIntent.putExtra("madgwickbeta", configSettings.madgwickBeta);
 
         // start service
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){

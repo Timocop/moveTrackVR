@@ -10,7 +10,6 @@ import org.moveTrack.math.MadgwickAHRS;
 
 public class GyroListener implements SensorEventListener {
     private static final float NS2S = 1.0f / 1000000000.0f;
-    private static final float MADGWICK_BETA = 0.2f;
 
     private SensorManager sensorManager;
 
@@ -34,7 +33,7 @@ public class GyroListener implements SensorEventListener {
 
     UDPGyroProviderClient udpClient;
 
-    GyroListener(SensorManager manager, UDPGyroProviderClient udpClient_v, AppStatus logger) throws Exception {
+    GyroListener(SensorManager manager, UDPGyroProviderClient udpClient_v, AppStatus logger, AutoDiscoverer.ConfigSettings configSettings) throws Exception {
         sensorManager = manager;
 
         GyroSensor = sensorManager.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
@@ -65,20 +64,32 @@ public class GyroListener implements SensorEventListener {
             logger.update("Accelerometer sensor found!");
         }
 
-        MagSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        if(MagSensor == null) {
-            logger.update("Magnetometer sensor could not be found, this data will be unavailable.");
+        if(configSettings.magnetometerEnabled)
+        {
+            MagSensor = sensorManager.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+            if(MagSensor == null) {
+                logger.update("Magnetometer sensor could not be found, this data will be unavailable.");
+            }
+            else {
+                logger.update("Magnetometer sensor found!");
+            }
         }
         else {
-            logger.update("Magnetometer sensor found!");
+            logger.update("Magnetometer disabled by user!");
         }
+
+        float madgwickBeta = configSettings.madgwickBeta;
+        if (madgwickBeta < 0.0f)
+            madgwickBeta = 0.0f;
+        if (madgwickBeta > 1.0f)
+            madgwickBeta = 1.0f;
 
         rotation_quat = new float[4];
         gyro_vec = new float[3];
         accel_vec = new float[3];
         mag_vec = new float[3];
         last_gyro_timestamp = 0;
-        filter_madgwick = new MadgwickAHRS(0.0f, MADGWICK_BETA);
+        filter_madgwick = new MadgwickAHRS(0.0f, madgwickBeta);
 
         udpClient = udpClient_v;
         udpClient.set_listener(this);

@@ -60,13 +60,17 @@ public class TrackingService extends Service {
         ip_address = data.getString("ipAddrTxt");
         int port_no = data.getInt("port_no");
 
+        AutoDiscoverer.ConfigSettings cfgSettings = new AutoDiscoverer.ConfigSettings();
+        cfgSettings.magnetometerEnabled = data.getBoolean("magnetometer");
+        cfgSettings.madgwickBeta = data.getFloat("madgwickbeta");
+
         System.out.println("Start command");
         foregroundstuff();
 
         stat = new AppStatus((Service)this);
         client = new UDPGyroProviderClient(stat, this);
         try {
-            listener = new GyroListener((SensorManager)getSystemService(Context.SENSOR_SERVICE), client, stat);
+            listener = new GyroListener((SensorManager)getSystemService(Context.SENSOR_SERVICE), client, stat, cfgSettings);
         } catch (Exception e) {
             stat.update("on GyroListener: " + e.toString());
             on_death.run();

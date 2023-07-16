@@ -77,7 +77,7 @@ public class MainActivity extends AppCompatActivity {
 
     public static NavController contr;
 
-    private void connect(String ip, int port){
+    private AutoDiscoverer.ConfigSettings connect(String ip, int port){
         SharedPreferences prefs = ConnectFragment.get_prefs(this);
         SharedPreferences.Editor editor = prefs.edit();
 
@@ -88,6 +88,11 @@ public class MainActivity extends AppCompatActivity {
 
 
         contr.navigate(R.id.connectFragment);
+
+        AutoDiscoverer.ConfigSettings configSettings = new AutoDiscoverer.ConfigSettings();
+        configSettings.magnetometerEnabled = prefs.getBoolean("magnetometer", true);
+        configSettings.madgwickBeta = prefs.getFloat("madgwickbeta", 0.2f);
+        return configSettings;
     }
 
     private void runDiscovery(){
