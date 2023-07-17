@@ -8,6 +8,8 @@ import android.os.Handler;
 import android.util.Log;
 
 import org.moveTrack.math.MadgwickAHRS;
+import org.moveTrack.math.Quaternion;
+import org.moveTrack.math.Vector3;
 
 import java.util.logging.LogManager;
 
@@ -237,13 +239,23 @@ public class GyroListener implements SensorEventListener {
             }
 
             float[] quat = filter_madgwick.getQuaternion();
-            float[] swapQuat = new float[4];
-            swapQuat[0] = quat[1];
-            swapQuat[1] = quat[2];
-            swapQuat[2] = quat[3];
-            swapQuat[3] = quat[0];
+            Quaternion swapQuat = new Quaternion(
+                    quat[1],
+                    quat[2],
+                    quat[3],
+                    quat[0]
+            );
 
-            udpClient.provide_rot(timeStamp, swapQuat);
+            // For some reason ROTATION_VECTOR quaternion and MADGWICK quaternion have a 90° yaw difference.
+            // Add a 90° offset to make it compatible with owoTrack servers.
+            swapQuat = new Quaternion(new Vector3(0.f, 0.f, 1.f), 90.f * (Math.PI / 180.f)).mulThis(swapQuat);
+            float[] newQuat = new float[4];
+            newQuat[0] = (float)swapQuat.getX();
+            newQuat[1] = (float)swapQuat.getY();
+            newQuat[2] = (float)swapQuat.getZ();
+            newQuat[3] = (float)swapQuat.getW();
+
+            udpClient.provide_rot(timeStamp, newQuat);
         }
 
         last_madgwick_timestamp = timeStamp;
