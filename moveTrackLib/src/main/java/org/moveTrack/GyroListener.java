@@ -11,6 +11,8 @@ import org.moveTrack.math.MadgwickAHRS;
 public class GyroListener implements SensorEventListener {
     private static final float NS2S = 1.0f / 1000000000.0f;
 
+    private static final long MADGWICK_UPDATE_RATE_MS = 5;
+
     private SensorManager sensorManager;
 
     private Sensor GyroSensor;
@@ -23,7 +25,10 @@ public class GyroListener implements SensorEventListener {
     private float[] accel_vec;
     private float[] mag_vec;
 
-    private float last_gyro_timestamp;
+    private long last_madgwick_timestamp;
+    private long last_gyro_timestamp;
+
+    private long elapsed_gyro_time;
 
     private int ROTATION_SENSOR_TYPE;
 
@@ -89,6 +94,8 @@ public class GyroListener implements SensorEventListener {
         accel_vec = new float[3];
         mag_vec = new float[3];
         last_gyro_timestamp = 0;
+        last_madgwick_timestamp = 0;
+        elapsed_gyro_time = 0;
         filter_madgwick = new MadgwickAHRS(0.0f, madgwickBeta);
 
         udpClient = udpClient_v;
@@ -122,8 +129,14 @@ public class GyroListener implements SensorEventListener {
 
             udpClient.provide_gyro(event.timestamp, vec);
 
-            if(last_gyro_timestamp != 0) {
-                updateMadgwick(event.timestamp);
+            if(last_gyro_timestamp != 0)  {
+                final float lastGyro = (event.timestamp - last_gyro_timestamp) * NS2S;
+                elapsed_gyro_time += (long)(lastGyro * 1000);
+
+                if(elapsed_gyro_time > MADGWICK_UPDATE_RATE_MS) {
+                    updateMadgwick(event.timestamp);
+                    elapsed_gyro_time = 0;
+                }
             }
 
             last_gyro_timestamp = event.timestamp;
@@ -138,8 +151,14 @@ public class GyroListener implements SensorEventListener {
 
             udpClient.provide_uncalib_gyro(event.timestamp, vec);
 
-            if(last_gyro_timestamp != 0) {
-                updateMadgwick(event.timestamp);
+            if(last_gyro_timestamp != 0)  {
+                final float lastGyro = (event.timestamp - last_gyro_timestamp) * NS2S;
+                elapsed_gyro_time += (long)(lastGyro * 1000);
+
+                if(elapsed_gyro_time > MADGWICK_UPDATE_RATE_MS) {
+                    updateMadgwick(event.timestamp);
+                    elapsed_gyro_time = 0;
+                }
             }
 
             last_gyro_timestamp = event.timestamp;
@@ -188,30 +207,34 @@ public class GyroListener implements SensorEventListener {
 
     private void updateMadgwick(long timeStamp)
     {
-        final float deltaTime = (timeStamp - last_gyro_timestamp) * NS2S;
+        if(last_madgwick_timestamp != 0) {
+            final float deltaTime = (timeStamp - last_madgwick_timestamp) * NS2S;
 
-        filter_madgwick.setSamplePeriod(deltaTime);
+            filter_madgwick.setSamplePeriod(deltaTime);
 
-        if(MagSensor != null) {
-            filter_madgwick.update(
-                    gyro_vec[0], gyro_vec[1], gyro_vec[2],
-                    accel_vec[0], accel_vec[1], accel_vec[2],
-                    mag_vec[0], mag_vec[1], mag_vec[2]);
+            if(MagSensor != null) {
+                filter_madgwick.update(
+                        gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                        accel_vec[0], accel_vec[1], accel_vec[2],
+                        mag_vec[0], mag_vec[1], mag_vec[2]);
+            }
+            else {
+                filter_madgwick.update(
+                        gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                        accel_vec[0], accel_vec[1], accel_vec[2]);
+            }
+
+            float[] quat = filter_madgwick.getQuaternion();
+            float[] swapQuat = new float[4];
+            swapQuat[0] = quat[1];
+            swapQuat[1] = quat[2];
+            swapQuat[2] = quat[3];
+            swapQuat[3] = quat[0];
+
+            udpClient.provide_rot(timeStamp, swapQuat);
         }
-        else {
-            filter_madgwick.update(
-                    gyro_vec[0], gyro_vec[1], gyro_vec[2],
-                    accel_vec[0], accel_vec[1], accel_vec[2]);
-        }
 
-        float[] quat = filter_madgwick.getQuaternion();
-        float[] swapQuat = new float[4];
-        swapQuat[0] = quat[1];
-        swapQuat[1] = quat[2];
-        swapQuat[2] = quat[3];
-        swapQuat[3] = quat[0];
-
-        udpClient.provide_rot(timeStamp, swapQuat);
+        last_madgwick_timestamp = timeStamp;
     }
 
     @Override
