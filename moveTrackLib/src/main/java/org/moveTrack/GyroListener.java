@@ -5,13 +5,19 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.util.Log;
 
 import org.moveTrack.math.MadgwickAHRS;
+
+import java.util.logging.LogManager;
 
 public class GyroListener implements SensorEventListener {
     private static final float NS2S = 1.0f / 1000000000.0f;
 
     private static final long MADGWICK_UPDATE_RATE_MS = 5;
+
+    private static final float STABILIZATION_GYRO_MAX_DEG = 1.f;
+    private static final float STABILIZATION_GYRO_MIN_DEG = 0.1f;
 
     private SensorManager sensorManager;
 
@@ -35,6 +41,9 @@ public class GyroListener implements SensorEventListener {
     private String sensor_type = "";
 
     private MadgwickAHRS filter_madgwick;
+
+    private float madgwick_beta;
+    private boolean use_stabilization;
 
     UDPGyroProviderClient udpClient;
 
@@ -83,11 +92,13 @@ public class GyroListener implements SensorEventListener {
             logger.update("Magnetometer disabled by user!");
         }
 
-        float madgwickBeta = configSettings.madgwickBeta;
-        if (madgwickBeta < 0.0f)
-            madgwickBeta = 0.0f;
-        if (madgwickBeta > 1.0f)
-            madgwickBeta = 1.0f;
+        madgwick_beta = configSettings.madgwickBeta;
+        if (madgwick_beta < 0.0f)
+            madgwick_beta = 0.0f;
+        if (madgwick_beta > 1.0f)
+            madgwick_beta = 1.0f;
+
+        use_stabilization = configSettings.stabilization;
 
         rotation_quat = new float[4];
         gyro_vec = new float[3];
@@ -96,7 +107,7 @@ public class GyroListener implements SensorEventListener {
         last_gyro_timestamp = 0;
         last_madgwick_timestamp = 0;
         elapsed_gyro_time = 0;
-        filter_madgwick = new MadgwickAHRS(0.0f, madgwickBeta);
+        filter_madgwick = new MadgwickAHRS(0.0f, madgwick_beta);
 
         udpClient = udpClient_v;
         udpClient.set_listener(this);
@@ -205,11 +216,12 @@ public class GyroListener implements SensorEventListener {
         }
     }
 
-    private void updateMadgwick(long timeStamp)
-    {
+    private void updateMadgwick(long timeStamp) {
         if(last_madgwick_timestamp != 0) {
             final float deltaTime = (timeStamp - last_madgwick_timestamp) * NS2S;
+            final float beta = getBeta(deltaTime);
 
+            filter_madgwick.setBeta(beta);
             filter_madgwick.setSamplePeriod(deltaTime);
 
             if(MagSensor != null) {
@@ -235,6 +247,22 @@ public class GyroListener implements SensorEventListener {
         }
 
         last_madgwick_timestamp = timeStamp;
+    }
+
+    private float getBeta(float deltaTime) {
+        if(!use_stabilization)
+            return madgwick_beta;
+
+        float gyro_sq = (float)Math.sqrt(gyro_vec[0]*gyro_vec[0]+gyro_vec[1]*gyro_vec[1]+gyro_vec[2]*gyro_vec[2]) * deltaTime;
+        gyro_sq = (float)(gyro_sq * (180.f / Math.PI));
+
+        float beta_multi = ((gyro_sq - STABILIZATION_GYRO_MIN_DEG) / STABILIZATION_GYRO_MAX_DEG);
+        if(beta_multi < 0.0f)
+            beta_multi = 0.f;
+        if(beta_multi > 1.0f)
+            beta_multi = 1.f;
+
+        return (madgwick_beta * beta_multi);
     }
 
     @Override

@@ -14,6 +14,7 @@ import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.CheckBox;
 import android.widget.EditText;
+import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
 
@@ -63,6 +64,21 @@ public class ConnectFragment extends GenericBindingFragment {
     protected void onConnectionStatus(boolean to) {
         if(connect_button != null)
             connect_button.setText(to ? "Disconnect" : "Connect");
+
+        if(ipAddrTxt != null)
+            ipAddrTxt.setEnabled(!to);
+
+        if(portTxt != null)
+            portTxt.setEnabled(!to);
+
+        if(magBox != null)
+            magBox.setEnabled(!to);
+
+        if(madgwickBetaBox != null)
+            madgwickBetaBox.setEnabled(!to);
+
+        if(stabilizationBox != null)
+            stabilizationBox.setEnabled(!to);
     }
 
     @Override
@@ -76,10 +92,9 @@ public class ConnectFragment extends GenericBindingFragment {
     Button connect_button = null;
     EditText ipAddrTxt = null;
     EditText portTxt = null;
-
     Switch magBox = null;
-
-    EditText madgwickBetaTxt = null;
+    SeekBar madgwickBetaBox = null;
+    Switch stabilizationBox = null;
 
 
     @Override
@@ -91,7 +106,8 @@ public class ConnectFragment extends GenericBindingFragment {
         ipAddrTxt = curr_view.findViewById(R.id.editIP);
         portTxt = curr_view.findViewById(R.id.editPort);
         magBox = curr_view.findViewById(R.id.editMagnetometer);
-        madgwickBetaTxt = curr_view.findViewById(R.id.editMadgwickBeta);
+        madgwickBetaBox = curr_view.findViewById(R.id.seekMadgwickBeta);
+        stabilizationBox = curr_view.findViewById(R.id.editStabilization);
 
 
         if(!MainActivity.hasAnySensorsAtAll()) {
@@ -99,7 +115,8 @@ public class ConnectFragment extends GenericBindingFragment {
             ipAddrTxt.setEnabled(false);
             portTxt.setEnabled(false);
             magBox.setEnabled(false);
-            madgwickBetaTxt.setEnabled(false);
+            madgwickBetaBox.setEnabled(false);
+            stabilizationBox.setEnabled(false);
 
             TextView statusText = curr_view.findViewById(R.id.statusText);
             statusText.setText(R.string.sensors_missing_all);
@@ -109,7 +126,8 @@ public class ConnectFragment extends GenericBindingFragment {
             ipAddrTxt.setText(prefs.getString("ip_address", ""));
             portTxt.setText(String.valueOf(prefs.getInt("port", 6969)));
             magBox.setChecked(prefs.getBoolean("magnetometer", true));
-            madgwickBetaTxt.setText(String.valueOf(prefs.getFloat("madgwickbeta", 0.2f)));
+            madgwickBetaBox.setProgress((int)(prefs.getFloat("madgwickbeta", 0.2f) * 10.f));
+            stabilizationBox.setChecked(prefs.getBoolean("stabilization", false));
 
             connect_button.setOnClickListener(v -> onConnect(false));
 
@@ -145,12 +163,11 @@ public class ConnectFragment extends GenericBindingFragment {
     }
 
     private float get_madgwickbeta() {
-        float val = 0.2f;
-        try{
-            val = Float.parseFloat(String.valueOf(madgwickBetaTxt.getText()));
-        }catch(NumberFormatException ignored){}
+        return (madgwickBetaBox.getProgress() / 10.f);
+    }
 
-        return val;
+    private boolean get_stabilization() {
+        return stabilizationBox.isChecked();
     }
 
     private void onConnect(boolean auto){
@@ -174,6 +191,7 @@ public class ConnectFragment extends GenericBindingFragment {
         mainIntent.putExtra("port_no", get_port());
         mainIntent.putExtra("magnetometer", get_mag());
         mainIntent.putExtra("madgwickbeta", get_madgwickbeta());
+        mainIntent.putExtra("stabilization", get_stabilization());
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             getContext().startForegroundService(mainIntent);
@@ -189,7 +207,8 @@ public class ConnectFragment extends GenericBindingFragment {
         if(ipAddrTxt == null ||
                 portTxt == null ||
                 magBox == null ||
-                madgwickBetaTxt == null)
+                madgwickBetaBox == null ||
+                stabilizationBox == null)
             return;
 
         SharedPreferences prefs = get_prefs();
@@ -199,6 +218,7 @@ public class ConnectFragment extends GenericBindingFragment {
         editor.putInt("port", get_port());
         editor.putBoolean("magnetometer", get_mag());
         editor.putFloat("madgwickbeta", get_madgwickbeta());
+        editor.putBoolean("stabilization", get_stabilization());
 
         editor.apply();
     }

@@ -63,6 +63,7 @@ public class TrackingService extends Service {
         AutoDiscoverer.ConfigSettings cfgSettings = new AutoDiscoverer.ConfigSettings();
         cfgSettings.magnetometerEnabled = data.getBoolean("magnetometer");
         cfgSettings.madgwickBeta = data.getFloat("madgwickbeta");
+        cfgSettings.stabilization = data.getBoolean("stabilization");
 
         System.out.println("Start command");
         foregroundstuff();
