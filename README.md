@@ -3,8 +3,6 @@
 # owoTrackVR and moveTrackVR differences
 **moveTrackVR** utilizes un/calibrated sensor data instead of the (Game) Rotation Vector. This approach bypasses any automated calibration algorithms implemented by the phone. Many phones incorporate customized sensor algorithms, including drift correction and custom dead zones, which vary across different devices. Unfortunately, the (Game) Rotation Vector on most phones tends to be unreliable due to these customized algorithms.
 
-By disregarding the phone's automated calibration algorithms, which vary from device to device, and employing a Madgwick filter instead, moveTrackVR enhances the dependability of phone orientation data.
-
 **moveTrackVR** is compatible with all **owoTrackVR** servers!
 
 # moveTrackVR Android Application
