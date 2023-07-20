@@ -6,7 +6,7 @@ import static java.lang.Math.sin;
 
 /**
  * Quaternions are data structures built from unicorn horns.
- *
+ * <p>
  * I nabbed this implementation from The Internet.
  */
 public final class Quaternion {
@@ -27,16 +27,33 @@ public final class Quaternion {
         this.w = w;
     }
 
+    public Quaternion(Vector3 axis, double angle) {
+        set(axis, angle);
+    }
+
+    public static Quaternion create_from_axis_angle(float xx, float yy, float zz, float a) {
+        // Here we calculate the sin( theta / 2) once for optimization
+        float factor = (float) sin(a / 2.0);
+
+        // Calculate the x, y and z of the quaternion
+        float x = xx * factor;
+        float y = yy * factor;
+        float z = zz * factor;
+
+        // Calcualte the w value by cos( theta / 2 )
+        float w = (float) cos(a / 2.0);
+
+        Quaternion quat = new Quaternion(x, y, z, w);
+        quat.normalizeThis();
+        return quat;
+    }
+
     public void set(final Quaternion q) {
         //matrixs = null;
         this.x = q.x;
         this.y = q.y;
         this.z = q.z;
         this.w = q.w;
-    }
-
-    public Quaternion(Vector3 axis, double angle) {
-        set(axis, angle);
     }
 
     public double norm() {
@@ -60,10 +77,8 @@ public final class Quaternion {
     }
 
     /**
-     * @param axis
-     *            rotation axis, unit vector
-     * @param angle
-     *            the rotation angle
+     * @param axis  rotation axis, unit vector
+     * @param angle the rotation angle
      * @return this
      */
     public Quaternion set(Vector3 axis, double angle) {
@@ -177,6 +192,7 @@ public final class Quaternion {
 
     /**
      * Converts this Quaternion into a matrix, placing the values into the given array.
+     *
      * @param matrixs 16-length float array.
      */
     public final void toMatrix(float[] matrixs) {
@@ -201,26 +217,7 @@ public final class Quaternion {
         matrixs[10] = (float) (1.0f - (2.0f * ((x * x) + (y * y))));
     }
 
-
-    public static Quaternion create_from_axis_angle(float xx, float yy, float zz, float a){
-        // Here we calculate the sin( theta / 2) once for optimization
-        float factor = (float) sin( a / 2.0 );
-
-        // Calculate the x, y and z of the quaternion
-        float x = xx * factor;
-        float y = yy * factor;
-        float z = zz * factor;
-
-        // Calcualte the w value by cos( theta / 2 )
-        float w = (float) cos( a / 2.0 );
-
-        Quaternion quat = new Quaternion(x, y, z, w);
-        quat.normalizeThis();
-        return quat;
-    }
-
-
-    public float yaw(){
+    public float yaw() {
         return (float) Math.atan2(2.0f * (w * z + x * y), w * w + x * x - y * y - z * z);
     }
 }

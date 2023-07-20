@@ -1,83 +1,82 @@
 package org.moveTrack.Mobile;
 
 
-import androidx.appcompat.app.AppCompatActivity;
-import androidx.navigation.NavController;
-import androidx.navigation.Navigation;
-import androidx.navigation.ui.NavigationUI;
-
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.hardware.Sensor;
 import android.hardware.SensorManager;
 import android.os.Bundle;
 
+import androidx.appcompat.app.AppCompatActivity;
+import androidx.navigation.NavController;
+import androidx.navigation.Navigation;
+import androidx.navigation.ui.NavigationUI;
+
 import com.google.android.material.bottomnavigation.BottomNavigationView;
 
-import org.moveTrack.*;
+import org.moveTrack.AutoDiscoverer;
+import org.moveTrack.Handshaker;
 import org.moveTrack.Mobile.ui.ConnectFragment;
 
 public class MainActivity extends AppCompatActivity {
 
     public static boolean[] sensor_exist;
-    public static boolean getSensorExists(int sensor){
-        if((sensor < 0) || (sensor >= 3)) return false;
+    public static NavController contr;
+    private static String missingSensorMessage = "";
+
+    public static boolean getSensorExists(int sensor) {
+        if ((sensor < 0) || (sensor >= 3)) return false;
         return sensor_exist[sensor];
     }
 
-    public static boolean hasAnySensorsAtAll(){
+    public static boolean hasAnySensorsAtAll() {
         return getSensorExists(0) || getSensorExists(1);
     }
 
-
-
-    private static String missingSensorMessage = "";
-    public static String getSensorText(){
+    public static String getSensorText() {
         return missingSensorMessage;
     }
 
-    private void fillSensorArray(){
-        SensorManager man = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+    private void fillSensorArray() {
+        SensorManager man = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
         sensor_exist = new boolean[3];
 
         sensor_exist[0] = (
                 man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null ||
-                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null
+                        man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null
         );
         sensor_exist[1] = (
                 man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null ||
-                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null
+                        man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null
         );
         sensor_exist[2] = man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null;
 
         missingSensorMessage = "";
 
-        if(!hasAnySensorsAtAll()){
+        if (!hasAnySensorsAtAll()) {
             missingSensorMessage = getString(R.string.sensors_missing_all);
         }
 
     }
 
-    private void ensureUUIDSet(){
+    private void ensureUUIDSet() {
         SharedPreferences prefs = getSharedPreferences("FakeMAC", Context.MODE_PRIVATE);
 
         long val = -1;
-        if(!prefs.contains("FakeMACValue")){
+        if (!prefs.contains("FakeMACValue")) {
             SharedPreferences.Editor editor = prefs.edit();
             val = (new java.util.Random()).nextLong();
             editor.putLong("FakeMACValue", val);
             editor.apply();
-        }else{
+        } else {
             val = prefs.getLong("FakeMACValue", 1);
         }
 
         Handshaker.setMac(val);
     }
 
-    public static NavController contr;
-
-    private AutoDiscoverer.ConfigSettings connect(String ip, int port){
+    private AutoDiscoverer.ConfigSettings connect(String ip, int port) {
         SharedPreferences prefs = ConnectFragment.get_prefs(this);
         SharedPreferences.Editor editor = prefs.edit();
 
@@ -97,15 +96,16 @@ public class MainActivity extends AppCompatActivity {
         return configSettings;
     }
 
-    private void runDiscovery(){
-        if(!hasAnySensorsAtAll()) return;
-        if(!AutoDiscoverer.discoveryStillNecessary) return;
+    private void runDiscovery() {
+        if (!hasAnySensorsAtAll()) return;
+        if (!AutoDiscoverer.discoveryStillNecessary) return;
 
         try {
             AutoDiscoverer disc = new AutoDiscoverer(this, this::connect);
             Thread thrd = new Thread(disc::try_discover);
             thrd.start();
-        } catch(OutOfMemoryError ignored){}
+        } catch (OutOfMemoryError ignored) {
+        }
     }
 
     @Override

@@ -7,6 +7,16 @@ public class MadgwickAHRS {
     private float beta;
     private float[] quaternion;
 
+    public MadgwickAHRS(float samplePeriod) {
+        this(samplePeriod, 1f);
+    }
+
+    public MadgwickAHRS(float samplePeriod, float beta) {
+        this.samplePeriod = samplePeriod;
+        this.beta = beta;
+        this.quaternion = new float[]{1f, 0f, 0f, 0f};
+    }
+
     public float getSamplePeriod() {
         return samplePeriod;
     }
@@ -25,16 +35,6 @@ public class MadgwickAHRS {
 
     public float[] getQuaternion() {
         return quaternion;
-    }
-
-    public MadgwickAHRS(float samplePeriod) {
-        this(samplePeriod, 1f);
-    }
-
-    public MadgwickAHRS(float samplePeriod, float beta) {
-        this.samplePeriod = samplePeriod;
-        this.beta = beta;
-        this.quaternion = new float[] { 1f, 0f, 0f, 0f };
     }
 
     public void update(float gx, float gy, float gz, float ax, float ay,

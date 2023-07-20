@@ -3,14 +3,13 @@ package org.moveTrack.Mobile.ui;
 import android.content.Intent;
 import android.os.Build;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.TextView;
+
+import androidx.fragment.app.Fragment;
 
 import org.moveTrack.Mobile.MainActivity;
 import org.moveTrack.Mobile.R;
@@ -36,7 +35,7 @@ public class homeMenu extends Fragment {
         TextView sensorWarning = v.findViewById(R.id.sensorWarningTextView);
         sensorWarning.setText(MainActivity.getSensorText());
 
-        if(!MainActivity.hasAnySensorsAtAll()){
+        if (!MainActivity.hasAnySensorsAtAll()) {
             TextView sleepWarning = v.findViewById(R.id.sleepWarningText);
             sleepWarning.setText("");
             autoConnectButton.setVisibility(View.GONE);
@@ -47,8 +46,8 @@ public class homeMenu extends Fragment {
         return v;
     }
 
-    private void autoConnect(){
-        if(TrackingService.isInstanceCreated()) return;
+    private void autoConnect() {
+        if (TrackingService.isInstanceCreated()) return;
 
         Intent mainIntent = new Intent(getContext(), TrackingService.class);
         mainIntent.putExtra("ipAddrTxt", "255.255.255.255");
@@ -56,9 +55,9 @@ public class homeMenu extends Fragment {
         mainIntent.putExtra("magnetometer", true);
         mainIntent.putExtra("madgwickbeta", 0.2f);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(mainIntent);
-        }else{
+        } else {
             getContext().startService(mainIntent);
         }
         MainActivity.contr.navigate(R.id.connectFragment);

@@ -3,15 +3,14 @@ package org.moveTrack.Mobile.ui;
 import android.content.Context;
 import android.content.res.TypedArray;
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.util.AttributeSet;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.ImageView;
 import android.widget.TextView;
+
+import androidx.fragment.app.Fragment;
 
 import org.moveTrack.Mobile.MainActivity;
 import org.moveTrack.Mobile.R;
@@ -22,15 +21,13 @@ import org.moveTrack.Mobile.R;
  * create an instance of this fragment.
  */
 public class SensorInfoFragment extends Fragment {
+    String sensorName = "err";
+    int sensorID = -2;
+    View main_view;
+
     public SensorInfoFragment() {
         // Required empty public constructor
     }
-
-
-    String sensorName = "err";
-    int sensorID = -2;
-
-    View main_view;
 
     public static SensorInfoFragment newInstance(String sensorName, int sensorID) {
         SensorInfoFragment fragment = new SensorInfoFragment();
@@ -50,10 +47,10 @@ public class SensorInfoFragment extends Fragment {
                              Bundle savedInstanceState) {
         main_view = inflater.inflate(R.layout.fragment_sensor_info, container, false);
 
-        if(MainActivity.getSensorExists(sensorID)){
+        if (MainActivity.getSensorExists(sensorID)) {
             ((ImageView) main_view.findViewById(R.id.radio_btn)).setImageResource(R.drawable.not_missing);
             ((TextView) main_view.findViewById(R.id.sensor_name)).setText(sensorName);
-        }else{
+        } else {
             ((ImageView) main_view.findViewById(R.id.radio_btn)).setImageResource(R.drawable.error_missing);
             ((TextView) main_view.findViewById(R.id.sensor_name)).setText("Missing: " + sensorName);
         }

@@ -1,12 +1,11 @@
 package org.moveTrack.Mobile.ui;
 
 import android.os.Bundle;
-
-import androidx.fragment.app.Fragment;
-
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
+
+import androidx.fragment.app.Fragment;
 
 import org.moveTrack.AppStatus;
 import org.moveTrack.Mobile.R;
@@ -17,6 +16,8 @@ import org.moveTrack.Mobile.R;
  * create an instance of this fragment.
  */
 public class debugLogFragment extends GenericBindingFragment {
+    AppStatus stat;
+
     public debugLogFragment() {
     }
 
@@ -27,11 +28,9 @@ public class debugLogFragment extends GenericBindingFragment {
         return fragment;
     }
 
-    AppStatus stat;
-
     @Override
     protected void onSetStatus(String to) {
-        if(stat != null) stat.update(to);
+        if (stat != null) stat.update(to);
     }
 
     @Override

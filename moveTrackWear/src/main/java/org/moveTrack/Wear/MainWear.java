@@ -32,23 +32,65 @@ import java.util.concurrent.locks.ReentrantLock;
 
 public class MainWear extends Activity {
 
-    private ActivityMainwearBinding binding;
-
-    private TextView debugText;
-    private boolean dead_no_sensors = false;
-
-    private Lock connecting_lock = new ReentrantLock();
-
+    final static String CONN_DATA = "CONNECTION_DATA_PREF";
     boolean gyro_exist;
     boolean accel_exist;
     boolean mag_exist;
-
     boolean connecting;
     boolean connected;
+    boolean isAutoDiscover = true;
+    TrackingService service_v = null;
+    private ActivityMainwearBinding binding;
+    private TextView debugText;
+    private boolean dead_no_sensors = false;
+    private Lock connecting_lock = new ReentrantLock();
+    private ServiceConnection trackingConnection = new ServiceConnection() {
+        @Override
+        public void onServiceConnected(ComponentName name, IBinder service) {
+            TrackingService.TrackingBinder binderBridge = (TrackingService.TrackingBinder) service;
+            service_v = binderBridge.getService();
 
+            onConnectionStatus(service_v.is_running());
 
-    private void onSetStatus(String to){
-        if(to.contains("Service not start")) return;
+            onSetStatus(service_v.getLog());
+        }
+
+        @Override
+        public void onServiceDisconnected(ComponentName name) {
+            service_v = null;
+
+            onConnectionStatus(false);
+        }
+    };
+    private BroadcastReceiver logReceiver = new BroadcastReceiver() {
+        @Override
+        public void onReceive(Context context, Intent intent) {
+            switch (intent.getAction()) {
+                case "info-log":
+                    onConnectionStatus(true);
+                    String data = intent.getStringExtra("message");
+                    onSetStatus(data);
+                    return;
+                case "cya-ded":
+                    onConnectionStatus(false);
+                    return;
+                case "pls-let-me-die":
+                    doBinding(false);
+                    doBinding(true);
+                    return;
+
+            }
+        }
+    };
+    private int debounce_wifi = 0;
+    private boolean wifi_acquired = true;
+
+    public static SharedPreferences get_prefs(Context c) {
+        return c.getSharedPreferences(CONN_DATA, Context.MODE_PRIVATE);
+    }
+
+    private void onSetStatus(String to) {
+        if (to.contains("Service not start")) return;
 
         String[] lines = to.split("\n");
 
@@ -57,25 +99,24 @@ public class MainWear extends Activity {
         });
     }
 
-    private void onSetStatus(int rid){
+    private void onSetStatus(int rid) {
         onSetStatus(getString(rid));
     }
 
-
-    private void onConnectionStatus(boolean to){
+    private void onConnectionStatus(boolean to) {
         setConnectedStatus(connecting, to);
     }
 
-    private void updateSensorStatus(){
-        SensorManager man = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+    private void updateSensorStatus() {
+        SensorManager man = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
 
         gyro_exist = (
                 man.getDefaultSensor(Sensor.TYPE_GYROSCOPE) != null ||
-                man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null
+                        man.getDefaultSensor(Sensor.TYPE_GYROSCOPE_UNCALIBRATED) != null
         );
         accel_exist = (
                 man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER) != null ||
-                man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null
+                        man.getDefaultSensor(Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) != null
         );
         mag_exist = man.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD) != null;
 
@@ -95,29 +136,22 @@ public class MainWear extends Activity {
         });
     }
 
-
-    final static String CONN_DATA = "CONNECTION_DATA_PREF";
-
-    public static SharedPreferences get_prefs(Context c){
-        return c.getSharedPreferences(CONN_DATA, Context.MODE_PRIVATE);
-    }
-
-    public SharedPreferences get_prefs(){
+    public SharedPreferences get_prefs() {
         return get_prefs(this);
     }
 
-    boolean isAutoDiscover = true;
-    private void onAutodiscoverChanged(View view){
+    private void onAutodiscoverChanged(View view) {
         binding.manualConnect.setVisibility(binding.autodiscover.isChecked() ? View.GONE : View.VISIBLE);
         isAutoDiscover = binding.autodiscover.isChecked();
     }
 
-    private Pair<String, Integer> getIpPort(){
+    private Pair<String, Integer> getIpPort() {
         String filtered_ip = String.valueOf(binding.editIpAddr.getText()).replaceAll("[^0-9\\.]", "");
         int port = 6969;
         try {
             port = Integer.parseInt(String.valueOf(binding.editPort.getText()));
-        }catch(NumberFormatException ignored){}
+        } catch (NumberFormatException ignored) {
+        }
 
         int finalPort = port;
         this.runOnUiThread(() -> {
@@ -127,7 +161,7 @@ public class MainWear extends Activity {
         return new Pair<String, Integer>(filtered_ip, port);
     }
 
-    private void load_prefs(){
+    private void load_prefs() {
         SharedPreferences prefs = get_prefs();
 
         this.runOnUiThread(() -> {
@@ -137,14 +171,15 @@ public class MainWear extends Activity {
         });
     }
 
-    private void save_prefs(){
+    private void save_prefs() {
         SharedPreferences prefs = get_prefs();
         SharedPreferences.Editor editor = prefs.edit();
 
         editor.putString("ip", String.valueOf(binding.editIpAddr.getText()));
         try {
             editor.putInt("port", Integer.parseInt(String.valueOf(binding.editPort.getText())));
-        }catch(NumberFormatException ignored){}
+        } catch (NumberFormatException ignored) {
+        }
 
         editor.putBoolean("autodiscover", binding.autodiscover.isChecked());
 
@@ -188,7 +223,7 @@ public class MainWear extends Activity {
         LocalBroadcastManager.getInstance(this).unregisterReceiver(logReceiver);
     }
 
-    private void setConnectedStatus(boolean connecting, boolean connected){
+    private void setConnectedStatus(boolean connecting, boolean connected) {
         this.connecting = connecting;
         this.connected = connected;
 
@@ -201,100 +236,57 @@ public class MainWear extends Activity {
         });
     }
 
-    private void doBinding(boolean is_bound){
-        if(is_bound){
+    private void doBinding(boolean is_bound) {
+        if (is_bound) {
             Intent intent = new Intent(this, TrackingService.class);
             this.bindService(intent, trackingConnection, BIND_AUTO_CREATE);
-        }else{
+        } else {
             this.unbindService(trackingConnection);
         }
     }
 
-
-    private BroadcastReceiver logReceiver = new BroadcastReceiver() {
-        @Override
-        public void onReceive(Context context, Intent intent) {
-            switch(intent.getAction()) {
-                case "info-log":
-                    onConnectionStatus(true);
-                    String data = intent.getStringExtra("message");
-                    onSetStatus(data);
-                    return;
-                case "cya-ded":
-                    onConnectionStatus(false);
-                    return;
-                case "pls-let-me-die":
-                    doBinding(false);
-                    doBinding(true);
-                    return;
-
-            }
-        }
-    };
-
-    TrackingService service_v = null;
-    private ServiceConnection trackingConnection = new ServiceConnection() {
-        @Override
-        public void onServiceConnected(ComponentName name, IBinder service) {
-            TrackingService.TrackingBinder binderBridge = (TrackingService.TrackingBinder) service;
-            service_v = binderBridge.getService();
-
-            onConnectionStatus(service_v.is_running());
-
-            onSetStatus(service_v.getLog());
-        }
-
-        @Override
-        public void onServiceDisconnected(ComponentName name) {
-            service_v = null;
-
-            onConnectionStatus(false);
-        }
-    };
-
-
-    private void connect(String ip, int port){
+    private void connect(String ip, int port) {
         onConnectionStatus(true);
 
         Intent mainIntent = new Intent(this, TrackingService.class);
         mainIntent.putExtra("ipAddrTxt", ip);
         mainIntent.putExtra("port_no", port);
 
-        if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             this.startForegroundService(mainIntent);
-        }else{
+        } else {
             this.startService(mainIntent);
         }
     }
 
-    private void ensureUUIDSet(){
+    private void ensureUUIDSet() {
         SharedPreferences prefs = getSharedPreferences("FakeMACWear", Context.MODE_PRIVATE);
 
         long val = -1;
-        if(!prefs.contains("FakeMACValueWear")){
+        if (!prefs.contains("FakeMACValueWear")) {
             SharedPreferences.Editor editor = prefs.edit();
             val = (new java.util.Random()).nextLong();
             editor.putLong("FakeMACValueWear", val);
             editor.apply();
-        }else{
+        } else {
             val = prefs.getLong("FakeMACValueWear", 1);
         }
 
         Handshaker.setMac(val);
     }
 
-    private void runConnectionProcedure(){
-        if(!connecting_lock.tryLock()) return;
+    private void runConnectionProcedure() {
+        if (!connecting_lock.tryLock()) return;
 
         boolean server_found = false;
         try {
             onSetStatus(R.string.searching);
 
-            if(isAutoDiscover) {
+            if (isAutoDiscover) {
                 this.connect("255.255.255.255", 6969);
-            }else{
+            } else {
                 Pair<String, Integer> ipPort = getIpPort();
-                if(ipPort.first.length() < 3){
+                if (ipPort.first.length() < 3) {
                     onSetStatus("Please enter valid IP");
                     return;
                 }
@@ -302,7 +294,7 @@ public class MainWear extends Activity {
                 server_found = true;
                 this.connect(ipPort.first, ipPort.second);
             }
-        }finally{
+        } finally {
             connecting_lock.unlock();
             boolean finalServer_found = server_found;
             this.runOnUiThread(() -> {
@@ -311,12 +303,10 @@ public class MainWear extends Activity {
         }
     }
 
-    private int debounce_wifi = 0;
-    private boolean wifi_acquired = true;
-    private void connectToWifiAndRun(View view){
-        if(dead_no_sensors) return;
+    private void connectToWifiAndRun(View view) {
+        if (dead_no_sensors) return;
 
-        if((service_v != null) && (service_v.is_running())){
+        if ((service_v != null) && (service_v.is_running())) {
             onSetStatus("Killing service...");
             Intent intent = new Intent("kill-ze-service");
             this.sendBroadcast(intent);
@@ -325,7 +315,7 @@ public class MainWear extends Activity {
             return;
         }
 
-        if(debounce_wifi > 0 && !wifi_acquired){
+        if (debounce_wifi > 0 && !wifi_acquired) {
             this.startActivity(new Intent("com.google.android.clockwork.settings.connectivity.wifi.ADD_NETWORK_SETTINGS"));
         }
 
@@ -337,10 +327,10 @@ public class MainWear extends Activity {
 
         onSetStatus("Awaiting WiFi network...");
 
-        ConnectivityManager connectivityManager =  (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
+        ConnectivityManager connectivityManager = (ConnectivityManager) getSystemService(Context.CONNECTIVITY_SERVICE);
         ConnectivityManager.NetworkCallback callback = new ConnectivityManager.NetworkCallback() {
             public void onAvailable(Network network) {
-                if(curr_deb != debounce_wifi) return;
+                if (curr_deb != debounce_wifi) return;
                 wifi_acquired = true;
 
                 super.onAvailable(network);

@@ -1,7 +1,13 @@
 package org.moveTrack.math;
 
 public final class Vector3 {
-    private double x,y,z;
+    private double x, y, z;
+
+    public Vector3(double ix, double iy, double iz) {
+        x = ix;
+        y = iy;
+        z = iz;
+    }
 
     public double getX() {
         return x;
@@ -15,12 +21,6 @@ public final class Vector3 {
         return z;
     }
 
-    public Vector3(double ix, double iy, double iz) {
-        x = ix;
-        y = iy;
-        z = iz;
-    }
-
     public void set(double ix, double iy, double iz) {
         x = ix;
         y = iy;
@@ -28,7 +28,7 @@ public final class Vector3 {
     }
 
     public double magnitude() {
-        return Math.sqrt(x*x+y*y+z*z);
+        return Math.sqrt(x * x + y * y + z * z);
     }
 
     public void multiply(double f) {

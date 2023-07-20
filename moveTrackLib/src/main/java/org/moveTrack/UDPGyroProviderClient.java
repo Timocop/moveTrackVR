@@ -65,27 +65,64 @@ class UDPPackets {
 }
 
 public class UDPGyroProviderClient {
-    private int port_v;
-    private InetAddress ip_addr;
-
-    private DatagramSocket socket;
-
-    private Handshaker.HandshakeResult handshake_result;
-
-    private AppStatus status;
-
+    public final static int CURRENT_VERSION = 5;
+    static long last_kill_time = 0;
+    final Object retry = new Object();
     Service service;
     GyroListener listener;
-
-    public final static int CURRENT_VERSION = 5;
-
     long last_packetsend_time = 0;
     long last_batterysend_time = 0;
     long num_packetsend = 0;
-
     long last_heartbeat_time = 0;
+    Thread listening_thread = null;
+    Thread sending_thread = null;
+    boolean is_retrying = false;
+    Thread retry_thread;
+    int failed_in_series = 0;
+    long last_error = 0;
+    private int port_v;
+    private InetAddress ip_addr;
+    private DatagramSocket socket;
+    private Handshaker.HandshakeResult handshake_result;
+    private AppStatus status;
+    private boolean isConnected = false;
+    private Runnable on_connection_death;
+    private boolean big_endian = true;
+    private ArrayBlockingQueue<DatagramPacket> packets = new ArrayBlockingQueue<DatagramPacket>(64);
+    private long packet_id = 0;
+    UDPGyroProviderClient(AppStatus status_v, Service s) {
+        status = status_v;
 
-    static long last_kill_time = 0;
+        service = s;
+
+        for (int portn = 9185; portn <= 9190; portn++) {
+            try {
+                if (portn == 9190) {
+                    socket = new DatagramSocket();
+                    status.update("WARNING: Using randomly assigned port");
+                } else {
+                    socket = new DatagramSocket(portn);
+                }
+
+                break;
+            } catch (SocketException e) {
+                long curr_time = System.currentTimeMillis();
+                if ((curr_time - last_kill_time) < 1000) {
+                    status.update("Please wait a bit before trying to reconnect");
+                    socket = null;
+                    break;
+                }
+
+                status.update("Failed to create socket for port " + String.valueOf(portn));
+                e.printStackTrace();
+                continue;
+            }
+        }
+
+        if (socket == null) {
+            status.update("Failed to create datagram socket");
+        }
+    }
 
     // from https://stackoverflow.com/questions/3291655/get-battery-level-and-state-in-android
     public static int getBatteryPercentage(Context context) {
@@ -105,49 +142,15 @@ public class UDPGyroProviderClient {
         }
     }
 
-    UDPGyroProviderClient(AppStatus status_v, Service s){
-        status = status_v;
-
-        service = s;
-
-        for(int portn = 9185; portn <= 9190; portn++) {
-            try {
-                if(portn == 9190){
-                    socket = new DatagramSocket();
-                    status.update("WARNING: Using randomly assigned port");
-                }else{
-                    socket = new DatagramSocket(portn);
-                }
-
-                break;
-            }catch(SocketException e){
-                long curr_time = System.currentTimeMillis();
-                if((curr_time - last_kill_time) < 1000){
-                    status.update("Please wait a bit before trying to reconnect");
-                    socket = null;
-                    break;
-                }
-
-                status.update("Failed to create socket for port " + String.valueOf(portn));
-                e.printStackTrace();
-                continue;
-            }
-        }
-
-        if(socket == null){
-            status.update("Failed to create datagram socket");
-        }
-    }
-
-    public boolean setTgt(String ip, int port){
-        if(ip.length() == 0) {
+    public boolean setTgt(String ip, int port) {
+        if (ip.length() == 0) {
             ip = "255.255.255.255";
         }
 
         port_v = port;
         try {
             ip_addr = InetAddress.getByName(ip);
-        } catch (UnknownHostException e){
+        } catch (UnknownHostException e) {
             status.update("Invalid IP address. Please enter a valid IP address.");
             ip_addr = null;
             return false;
@@ -174,15 +177,11 @@ public class UDPGyroProviderClient {
         return (handshake_result != null) && (handshake_result.success);
     }
 
-    private boolean isBroadcasting(){
+    private boolean isBroadcasting() {
         return ip_addr.toString().endsWith(".255");
     }
 
-    private boolean isConnected = false;
-
-    private Runnable on_connection_death;
-
-    private void save_to_prefs(){
+    private void save_to_prefs() {
         final String CONN_DATA = "CONNECTION_DATA_PREF";
         SharedPreferences prefs = service.getSharedPreferences(CONN_DATA, Context.MODE_PRIVATE);
 
@@ -194,19 +193,17 @@ public class UDPGyroProviderClient {
         editor.apply();
     }
 
-    Thread listening_thread = null;
-    Thread sending_thread = null;
-    public boolean connect(Runnable on_death){
-        if(socket == null) return false;
+    public boolean connect(Runnable on_death) {
+        if (socket == null) return false;
 
         on_connection_death = on_death;
         socket.disconnect();
         packet_id = 0;
-        if(ip_addr == null){
+        if (ip_addr == null) {
             return false;
         }
 
-        if(!isBroadcasting()) {
+        if (!isBroadcasting()) {
             try {
                 socket.connect(new InetSocketAddress(ip_addr, port_v));
             } catch (Exception e) {
@@ -216,7 +213,7 @@ public class UDPGyroProviderClient {
             }
         }
 
-        if(!try_handshake()){
+        if (!try_handshake()) {
             return false;
         }
 
@@ -225,26 +222,26 @@ public class UDPGyroProviderClient {
         save_to_prefs();
 
         isConnected = true;
-        if(isConnected){
+        if (isConnected) {
             last_heartbeat_time = System.currentTimeMillis();
             last_packetsend_time = last_heartbeat_time;
             status.update("Connection succeeded!");
             AutoDiscoverer.discoveryStillNecessary = false;
 
-            if(listening_thread != null) listening_thread.interrupt();
+            if (listening_thread != null) listening_thread.interrupt();
             try {
                 listening_thread = new Thread(listen_task);
                 listening_thread.start();
-            }catch(OutOfMemoryError e){
+            } catch (OutOfMemoryError e) {
                 status.update("Ran out of memory trying to spawn listening_thread");
                 isConnected = false;
             }
 
-            if(sending_thread != null) sending_thread.interrupt();
+            if (sending_thread != null) sending_thread.interrupt();
             try {
                 sending_thread = new Thread(send_task);
                 sending_thread.start();
-            }catch(OutOfMemoryError e){
+            } catch (OutOfMemoryError e) {
                 status.update("Ran out of memory trying to spawn sending_thread");
                 isConnected = false;
             }
@@ -253,20 +250,17 @@ public class UDPGyroProviderClient {
         return isConnected;
     }
 
-    final Object retry = new Object();
-    boolean is_retrying = false;
-    Thread retry_thread;
-    private void killConnection(boolean unexpected){
-        if(!isConnected) return;
+    private void killConnection(boolean unexpected) {
+        if (!isConnected) return;
 
-        if(!unexpected) on_connection_death.run();
+        if (!unexpected) on_connection_death.run();
         isConnected = false;
         handshake_result = null;
 
-        if(listening_thread != null) listening_thread.interrupt();
-        if(sending_thread != null) sending_thread.interrupt();
+        if (listening_thread != null) listening_thread.interrupt();
+        if (sending_thread != null) sending_thread.interrupt();
 
-        if(unexpected){
+        if (unexpected) {
             synchronized (retry) {
                 if (is_retrying) return;
                 is_retrying = true;
@@ -302,21 +296,22 @@ public class UDPGyroProviderClient {
                 });
 
                 retry_thread.start();
-            }catch(OutOfMemoryError ignored){}
+            } catch (OutOfMemoryError ignored) {
+            }
         }
     }
 
-    public boolean isConnected(){
-        if(socket == null) return false;
+    public boolean isConnected() {
+        if (socket == null) return false;
 
-        if(!(isConnected && (handshake_result != null) && (handshake_result.success)))
+        if (!(isConnected && (handshake_result != null) && (handshake_result.success)))
             return false;
 
         long time = System.currentTimeMillis();
 
         long time_diff = time - last_heartbeat_time;
 
-        if(time_diff > (10*1000)){
+        if (time_diff > (10 * 1000)) {
             status.update("Connection with the server has been lost!");
             killConnection(true);
             return false;
@@ -325,8 +320,6 @@ public class UDPGyroProviderClient {
         return true;
     }
 
-
-    private boolean big_endian = true;
     private void parse_packet(int msg_type, int msg_len, ByteBuffer buff, boolean recursive) {
         switch (msg_type) {
             case UDPPackets.RECIEVE_HEARTBEAT: {
@@ -370,7 +363,7 @@ public class UDPGyroProviderClient {
                 // endianness on the fly if the packet ID is extremely big
                 if (msg_type >= 2048) {
                     big_endian = !big_endian;
-                    if(recursive) {
+                    if (recursive) {
                         // oops! looks like that wasnt it, return to avoid infinite recursion
                         System.out.println("STILL unknown! " + msg_type);
                         return;
@@ -384,21 +377,21 @@ public class UDPGyroProviderClient {
         }
     }
 
-    private boolean flush_packet(int timeout){
+    private boolean flush_packet(int timeout) {
         DatagramPacket packet = null;
-        if(packets == null) return false;
+        if (packets == null) return false;
         try {
-            if(timeout > 0) {
+            if (timeout > 0) {
                 packet = packets.poll(timeout, TimeUnit.MILLISECONDS);
-            }else{
+            } else {
                 packet = packets.poll();
             }
         } catch (InterruptedException e) {
             return false;
         }
-        if(Thread.currentThread().isInterrupted()) return false;
-        if(packet != null) {
-            if(socket == null) return false;
+        if (Thread.currentThread().isInterrupted()) return false;
+        if (packet != null) {
+            if (socket == null) return false;
             try {
                 socket.send(packet);
                 failed_in_series = 0;
@@ -423,67 +416,19 @@ public class UDPGyroProviderClient {
         return false;
     }
 
-    private ArrayBlockingQueue<DatagramPacket> packets = new ArrayBlockingQueue<DatagramPacket>(64);
-
-    private long packet_id = 0;
-
-    int failed_in_series = 0;
-    long last_error = 0;
-
-    Runnable send_task = () -> {
+    private boolean sendPacket(ByteBuffer buff, int len) {
+        return packets.offer(new DatagramPacket(buff.array(), len, ip_addr, port_v));
+    }    Runnable send_task = () -> {
         while (isConnected && !Thread.currentThread().isInterrupted()) {
             flush_packet(250);
         }
     };
 
-    Runnable listen_task = () -> {
-            byte[] buffer = new byte[256];
-            while (isConnected && !Thread.currentThread().isInterrupted()) {
-                try {
-                    socket.setSoTimeout(250);
-                    DatagramPacket p = new DatagramPacket(buffer, 256);
-                    try {
-                        socket.receive(p);
-                    } catch (SocketTimeoutException e) {
-                        continue;
-                    }
-
-                    last_heartbeat_time = System.currentTimeMillis();
-
-                    ByteBuffer buff = ByteBuffer.wrap(buffer, 0, p.getLength());
-                    buff.order(big_endian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
-                    buff.position(0);
-                    int msg_type = buff.getInt();
-
-                    if ((last_heartbeat_time - last_batterysend_time) > 10000) {
-                        last_batterysend_time = last_heartbeat_time;
-                        provide_battery();
-                    }
-
-                    parse_packet(msg_type, p.getLength(), buff, false);
-
-                    // parse_packet may have added a few packets to the queue, so
-                    // flush it if we can
-                    while(flush_packet(0));
-                } catch (Exception e) {
-                    if(Thread.currentThread().isInterrupted()) return;
-
-                    status.update("Consume: " + e.toString());
-                    e.printStackTrace();
-                    continue;
-                }
-            }
-    };
-
-    private boolean sendPacket(ByteBuffer buff, int len){
-        return packets.offer(new DatagramPacket(buff.array(), len, ip_addr, port_v));
-    }
-
-    private void provide_battery(){
-        if(!isConnected()) return;
+    private void provide_battery() {
+        if (!isConnected()) return;
 
         int battery_level = getBatteryPercentage(service);
-        float battery = (float)battery_level / 100.0f;
+        float battery = (float) battery_level / 100.0f;
 
         int len = 4 + 8 + 4;
 
@@ -493,7 +438,44 @@ public class UDPGyroProviderClient {
         buff.putFloat(battery);
 
         sendPacket(buff, len);
-    }
+    }    Runnable listen_task = () -> {
+        byte[] buffer = new byte[256];
+        while (isConnected && !Thread.currentThread().isInterrupted()) {
+            try {
+                socket.setSoTimeout(250);
+                DatagramPacket p = new DatagramPacket(buffer, 256);
+                try {
+                    socket.receive(p);
+                } catch (SocketTimeoutException e) {
+                    continue;
+                }
+
+                last_heartbeat_time = System.currentTimeMillis();
+
+                ByteBuffer buff = ByteBuffer.wrap(buffer, 0, p.getLength());
+                buff.order(big_endian ? ByteOrder.BIG_ENDIAN : ByteOrder.LITTLE_ENDIAN);
+                buff.position(0);
+                int msg_type = buff.getInt();
+
+                if ((last_heartbeat_time - last_batterysend_time) > 10000) {
+                    last_batterysend_time = last_heartbeat_time;
+                    provide_battery();
+                }
+
+                parse_packet(msg_type, p.getLength(), buff, false);
+
+                // parse_packet may have added a few packets to the queue, so
+                // flush it if we can
+                while (flush_packet(0)) ;
+            } catch (Exception e) {
+                if (Thread.currentThread().isInterrupted()) return;
+
+                status.update("Consume: " + e.toString());
+                e.printStackTrace();
+                continue;
+            }
+        }
+    };
 
     private void provide_sensor(long timestamp, float[] floats, int len, int msg_type, boolean include_timestamp) {
         if (!isConnected()) return;
@@ -504,7 +486,7 @@ public class UDPGyroProviderClient {
         buff.putInt(msg_type);
         buff.putLong(packet_id);
 
-        if(include_timestamp) {
+        if (include_timestamp) {
             buff.putLong(timestamp);
         }
 
@@ -512,13 +494,13 @@ public class UDPGyroProviderClient {
             buff.putFloat(floats[i]);
         }
 
-        if(!sendPacket(buff, bytes)) return;
+        if (!sendPacket(buff, bytes)) return;
 
         packet_id++;
 
     }
 
-    public void button_pushed(){
+    public void button_pushed() {
         int len = 4 + 8;
         ByteBuffer buff = ByteBuffer.allocate(len);
         buff.putInt(UDPPackets.BUTTON_PUSHED);
@@ -527,44 +509,44 @@ public class UDPGyroProviderClient {
         sendPacket(buff, len);
     }
 
-    public void provide_rot(long timestamp, float[] rot_q){
-        provide_sensor(timestamp, rot_q,  4, UDPPackets.ROTATION, false);
+    public void provide_rot(long timestamp, float[] rot_q) {
+        provide_sensor(timestamp, rot_q, 4, UDPPackets.ROTATION, false);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
 
-    public void provide_gyro(long timestamp, float[] gyro_v){
-        provide_sensor(timestamp, gyro_v,  3, UDPPackets.CALIBRATED_GYRO, true);
+    public void provide_gyro(long timestamp, float[] gyro_v) {
+        provide_sensor(timestamp, gyro_v, 3, UDPPackets.CALIBRATED_GYRO, true);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
 
-    public void provide_accel(long timestamp, float[] accel_v){
-        provide_sensor(timestamp, accel_v,  3, UDPPackets.CALIBRATED_ACCEL, true);
+    public void provide_accel(long timestamp, float[] accel_v) {
+        provide_sensor(timestamp, accel_v, 3, UDPPackets.CALIBRATED_ACCEL, true);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
 
-    public void provide_mag(long timestamp, float[] mag_v){
-        provide_sensor(timestamp, mag_v,  3, UDPPackets.CALIBRATED_MAG, true);
+    public void provide_mag(long timestamp, float[] mag_v) {
+        provide_sensor(timestamp, mag_v, 3, UDPPackets.CALIBRATED_MAG, true);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
 
-    public void provide_uncalib_gyro(long timestamp, float[] gyro_v){
-        provide_sensor(timestamp, gyro_v,  3, UDPPackets.UNCALIBRATED_GYRO, true);
+    public void provide_uncalib_gyro(long timestamp, float[] gyro_v) {
+        provide_sensor(timestamp, gyro_v, 3, UDPPackets.UNCALIBRATED_GYRO, true);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
 
-    public void provide_uncalib_accel(long timestamp, float[] accel_v){
-        provide_sensor(timestamp, accel_v,  3, UDPPackets.UNCALIBRATED_ACCEL, true);
+    public void provide_uncalib_accel(long timestamp, float[] accel_v) {
+        provide_sensor(timestamp, accel_v, 3, UDPPackets.UNCALIBRATED_ACCEL, true);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
 
-    public void provide_uncalib_mag(long timestamp, float[] mag_v){
-        provide_sensor(timestamp, mag_v,  3, UDPPackets.UNCALIBRATED_MAG, true);
+    public void provide_uncalib_mag(long timestamp, float[] mag_v) {
+        provide_sensor(timestamp, mag_v, 3, UDPPackets.UNCALIBRATED_MAG, true);
         num_packetsend++;
         last_packetsend_time = System.currentTimeMillis();
     }
@@ -578,11 +560,15 @@ public class UDPGyroProviderClient {
 
         listener = null;
 
-        if(socket != null) {
+        if (socket != null) {
             socket.close();
             socket = null;
         }
 
         last_kill_time = System.currentTimeMillis();
     }
+
+
+
+
 }
