@@ -93,6 +93,9 @@ public class ConnectFragment extends GenericBindingFragment {
 
         if (stabilizationBox != null)
             stabilizationBox.setEnabled(!to);
+
+        if (sendRawBox != null)
+            sendRawBox.setEnabled(!to);
     }
 
     @Override
