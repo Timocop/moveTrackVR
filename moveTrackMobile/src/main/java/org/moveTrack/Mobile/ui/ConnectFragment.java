@@ -95,6 +95,7 @@ public class ConnectFragment extends GenericBindingFragment {
     Switch magBox = null;
     SeekBar madgwickBetaBox = null;
     Switch stabilizationBox = null;
+    Switch sendRawBox = null;
 
 
     @Override
@@ -108,6 +109,7 @@ public class ConnectFragment extends GenericBindingFragment {
         magBox = curr_view.findViewById(R.id.editMagnetometer);
         madgwickBetaBox = curr_view.findViewById(R.id.seekMadgwickBeta);
         stabilizationBox = curr_view.findViewById(R.id.editStabilization);
+        sendRawBox = curr_view.findViewById(R.id.editRawData);
 
 
         if(!MainActivity.hasAnySensorsAtAll()) {
@@ -117,6 +119,7 @@ public class ConnectFragment extends GenericBindingFragment {
             magBox.setEnabled(false);
             madgwickBetaBox.setEnabled(false);
             stabilizationBox.setEnabled(false);
+            sendRawBox.setEnabled(false);
 
             TextView statusText = curr_view.findViewById(R.id.statusText);
             statusText.setText(R.string.sensors_missing_all);
@@ -128,6 +131,7 @@ public class ConnectFragment extends GenericBindingFragment {
             magBox.setChecked(prefs.getBoolean("magnetometer", true));
             madgwickBetaBox.setProgress((int)(prefs.getFloat("madgwickbeta", 0.2f) * 10.f));
             stabilizationBox.setChecked(prefs.getBoolean("stabilization", false));
+            sendRawBox.setChecked(prefs.getBoolean("rawsensor", false));
 
             connect_button.setOnClickListener(v -> onConnect(false));
 
@@ -169,6 +173,9 @@ public class ConnectFragment extends GenericBindingFragment {
     private boolean get_stabilization() {
         return stabilizationBox.isChecked();
     }
+    private boolean get_rawsensor() {
+        return sendRawBox.isChecked();
+    }
 
     private void onConnect(boolean auto){
         if((service_v != null) && (service_v.is_running())){
@@ -192,6 +199,7 @@ public class ConnectFragment extends GenericBindingFragment {
         mainIntent.putExtra("magnetometer", get_mag());
         mainIntent.putExtra("madgwickbeta", get_madgwickbeta());
         mainIntent.putExtra("stabilization", get_stabilization());
+        mainIntent.putExtra("rawsensor", get_rawsensor());
 
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){
             getContext().startForegroundService(mainIntent);
@@ -208,7 +216,8 @@ public class ConnectFragment extends GenericBindingFragment {
                 portTxt == null ||
                 magBox == null ||
                 madgwickBetaBox == null ||
-                stabilizationBox == null)
+                stabilizationBox == null ||
+                sendRawBox == null)
             return;
 
         SharedPreferences prefs = get_prefs();
@@ -219,6 +228,7 @@ public class ConnectFragment extends GenericBindingFragment {
         editor.putBoolean("magnetometer", get_mag());
         editor.putFloat("madgwickbeta", get_madgwickbeta());
         editor.putBoolean("stabilization", get_stabilization());
+        editor.putBoolean("rawsensor", get_rawsensor());
 
         editor.apply();
     }

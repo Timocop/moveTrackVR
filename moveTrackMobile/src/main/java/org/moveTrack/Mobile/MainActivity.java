@@ -93,6 +93,7 @@ public class MainActivity extends AppCompatActivity {
         configSettings.magnetometerEnabled = prefs.getBoolean("magnetometer", true);
         configSettings.madgwickBeta = prefs.getFloat("madgwickbeta", 0.2f);
         configSettings.stabilization = prefs.getBoolean("stabilization", false);
+        configSettings.rawSensors = prefs.getBoolean("rawsensor", false);
         return configSettings;
     }
 

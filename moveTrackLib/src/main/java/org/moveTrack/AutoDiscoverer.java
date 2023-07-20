@@ -22,6 +22,7 @@ public class AutoDiscoverer {
         public boolean magnetometerEnabled;
         public float madgwickBeta;
         public boolean stabilization;
+        public boolean rawSensors;
     }
 
     public interface ConfigSaver {
@@ -53,6 +54,7 @@ public class AutoDiscoverer {
         mainIntent.putExtra("magnetometer", configSettings.magnetometerEnabled);
         mainIntent.putExtra("madgwickbeta", configSettings.madgwickBeta);
         mainIntent.putExtra("stabilization", configSettings.stabilization);
+        mainIntent.putExtra("rawsensor", configSettings.rawSensors);
 
         // start service
         if(Build.VERSION.SDK_INT >= Build.VERSION_CODES.O){

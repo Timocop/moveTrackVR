@@ -148,6 +148,33 @@
                 android:drawableStart="@android:drawable/ic_menu_info_details"
                 android:text="The speed how fast accelerometer and magnetometer drift correction is applied. Too high speeds can cause orientation jitter when the device is stationary!"
                 android:textStyle="italic" />
+
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <View
+                android:id="@+id/divider4"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?android:attr/listDivider" />
+
+            <Switch
+                android:id="@+id/editRawData"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Include Raw Sensor Data"
+                android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/textView8"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawableStart="@android:drawable/ic_menu_info_details"
+                android:text="Also send raw gyroscope, accelerometer and magetometer data when enabled."
+                android:textStyle="italic" />
+
         </LinearLayout>
     </ScrollView>
 
