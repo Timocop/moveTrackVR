@@ -17,6 +17,8 @@ class HandshakeFailException extends Exception {
 
 public class Handshaker {
     // Android doesn't allow getting MAC address anymore, so we fake one
+    // NOTE: A random mac gets generated and set by MainActivity using the
+    // setMac method below, this is not a constant value. It's random per-device
     private static byte[] pseudo_mac = new byte[]{0, 69, 0, 0, 0, 0};
 
     private static byte[] getMac() {
@@ -34,10 +36,15 @@ public class Handshaker {
         }
     }
 
+    private static byte[] getMac(){
+        return pseudo_mac;
+    }
+
+
     public static void insert_slime_info(ByteBuffer buff) {
-        final int boardType = 0;
+        final int boardType = 13;
         final int imuType = 0;
-        final int mcuType = 0;
+        final int mcuType = 3;
 
         final int[] imuInfo = {0, 0, 0};
 
