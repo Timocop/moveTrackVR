@@ -5,6 +5,10 @@
 
 **moveTrackVR** is compatible with all **owoTrackVR** servers!
 
+## 🎥 Video Demonstration with a Fairphone - First Edition
+[ExMoveTrack2.webm](https://github.com/Timocop/moveTrackVR/assets/22834512/5a5642d6-e2bc-4e15-8ace-cd44cdaf94ef)
+
+
 # moveTrackVR Android Application
 This application can be installed on an Android device to connect to [SlimeVR server](https://github.com/SlimeVR/SlimeVR-Server) or [PSMoveServiceEx - Virtual Device Manager](https://github.com/Timocop/PSMoveServiceEx-Virtual-Device-Manager) to replace devices orientation data.
 
