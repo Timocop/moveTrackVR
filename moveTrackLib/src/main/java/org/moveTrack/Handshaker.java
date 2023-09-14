@@ -21,10 +21,6 @@ public class Handshaker {
     // setMac method below, this is not a constant value. It's random per-device
     private static byte[] pseudo_mac = new byte[]{0, 69, 0, 0, 0, 0};
 
-    private static byte[] getMac() {
-        return pseudo_mac;
-    }
-
     public static void setMac(long from) {
         ByteBuffer from_b = ByteBuffer.allocate(Long.BYTES);
         from_b.putLong(from);
