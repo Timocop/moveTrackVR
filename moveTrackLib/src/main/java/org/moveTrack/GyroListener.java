@@ -17,15 +17,22 @@ public class GyroListener implements SensorEventListener {
 
     private static final float STABILIZATION_GYRO_MAX_DEG = 1.f;
     private static final float STABILIZATION_GYRO_MIN_DEG = 0.1f;
+
+    public final static boolean OPTIMIZE_ROTATION_PACKET_SEND = true;
+
+
     UDPGyroProviderClient udpClient;
     private SensorManager sensorManager;
     private Sensor GyroSensor;
     private Sensor AccelSensor;
     private Sensor MagSensor;
-    private float[] rotation_quat;
+
+    Quaternion rot_vec;
     private float[] gyro_vec;
     private float[] accel_vec;
     private float[] mag_vec;
+
+    private long last_send_timestamp;
     private long last_madgwick_timestamp;
     private long last_gyro_timestamp;
     private long elapsed_gyro_time;
@@ -85,12 +92,13 @@ public class GyroListener implements SensorEventListener {
         use_stabilization = configSettings.stabilization;
         send_raw_sensors = configSettings.rawSensors;
 
-        rotation_quat = new float[4];
+        rot_vec = new Quaternion(0.0,0.0,0.0,1.0);
         gyro_vec = new float[3];
         accel_vec = new float[3];
         mag_vec = new float[3];
         last_gyro_timestamp = 0;
         last_madgwick_timestamp = 0;
+        last_send_timestamp = 0;
         elapsed_gyro_time = 0;
         gyro_samples = 0;
         filter_madgwick = new MadgwickAHRS(0.0f, madgwick_beta);
@@ -273,10 +281,33 @@ public class GyroListener implements SensorEventListener {
             newQuat[2] = (float) swapQuat.getZ();
             newQuat[3] = (float) swapQuat.getW();
 
-            udpClient.provide_rot(timeStamp, newQuat);
+            // Keep alive
+            final float last_send = (timeStamp - last_send_timestamp) * NS2S;
+
+            if (!OPTIMIZE_ROTATION_PACKET_SEND || last_send > 0.5f || !quat_equal(swapQuat, rot_vec))
+            {
+                udpClient.provide_rot(timeStamp, newQuat);
+                last_send_timestamp = timeStamp;
+            }
+
+            rot_vec = swapQuat;
         }
 
         last_madgwick_timestamp = timeStamp;
+    }
+
+    private boolean quat_equal(Quaternion q1, Quaternion q2)
+    {
+        final float EQUAL_TOLERANCE = 0.0001f;
+        
+        if (Math.abs(q1.getX() - q2.getX()) < EQUAL_TOLERANCE &&
+                Math.abs(q1.getY() - q2.getY()) < EQUAL_TOLERANCE &&
+                Math.abs(q1.getZ() - q2.getZ()) < EQUAL_TOLERANCE &&
+                Math.abs(q1.getW() - q2.getW()) < EQUAL_TOLERANCE) {
+            return true;
+        }
+
+        return false;
     }
 
     private float getBeta(float deltaTime) {
