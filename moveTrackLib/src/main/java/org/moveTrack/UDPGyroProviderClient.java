@@ -65,6 +65,8 @@ class UDPPackets {
 }
 
 public class UDPGyroProviderClient {
+    protected final Object __lock = new Object();
+
     public final static int CURRENT_VERSION = 5;
     static long last_kill_time = 0;
     final Object retry = new Object();
@@ -478,77 +480,94 @@ public class UDPGyroProviderClient {
     };
 
     private void provide_sensor(long timestamp, float[] floats, int len, int msg_type, boolean include_timestamp) {
-        if (!isConnected()) return;
+        synchronized (__lock) {
+            if (!isConnected()) return;
 
-        int bytes = 4 + 8 + 8 + (len * 4);
+            int bytes = 4 + 8 + 8 + (len * 4);
 
-        ByteBuffer buff = ByteBuffer.allocate(bytes);
-        buff.putInt(msg_type);
-        buff.putLong(packet_id);
+            ByteBuffer buff = ByteBuffer.allocate(bytes);
+            buff.putInt(msg_type);
+            buff.putLong(packet_id);
 
-        if (include_timestamp) {
-            buff.putLong(timestamp);
+            if (include_timestamp) {
+                buff.putLong(timestamp);
+            }
+
+            for (int i = 0; i < len; i++) {
+                buff.putFloat(floats[i]);
+            }
+
+            if (!sendPacket(buff, bytes)) return;
+
+            packet_id++;
         }
-
-        for (int i = 0; i < len; i++) {
-            buff.putFloat(floats[i]);
-        }
-
-        if (!sendPacket(buff, bytes)) return;
-
-        packet_id++;
-
     }
 
     public void button_pushed() {
-        int len = 4 + 8;
-        ByteBuffer buff = ByteBuffer.allocate(len);
-        buff.putInt(UDPPackets.BUTTON_PUSHED);
-        buff.putLong(packet_id++);
+        synchronized (__lock) {
+            int len = 4 + 8;
+            ByteBuffer buff = ByteBuffer.allocate(len);
+            buff.putInt(UDPPackets.BUTTON_PUSHED);
+            buff.putLong(packet_id++);
 
-        sendPacket(buff, len);
+            sendPacket(buff, len);
+        }
     }
 
     public void provide_rot(long timestamp, float[] rot_q) {
-        provide_sensor(timestamp, rot_q, 4, UDPPackets.ROTATION, false);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, rot_q, 4, UDPPackets.ROTATION, false);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void provide_gyro(long timestamp, float[] gyro_v) {
-        provide_sensor(timestamp, gyro_v, 3, UDPPackets.CALIBRATED_GYRO, true);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, gyro_v, 3, UDPPackets.CALIBRATED_GYRO, true);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void provide_accel(long timestamp, float[] accel_v) {
-        provide_sensor(timestamp, accel_v, 3, UDPPackets.CALIBRATED_ACCEL, true);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, accel_v, 3, UDPPackets.CALIBRATED_ACCEL, true);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void provide_mag(long timestamp, float[] mag_v) {
-        provide_sensor(timestamp, mag_v, 3, UDPPackets.CALIBRATED_MAG, true);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, mag_v, 3, UDPPackets.CALIBRATED_MAG, true);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void provide_uncalib_gyro(long timestamp, float[] gyro_v) {
-        provide_sensor(timestamp, gyro_v, 3, UDPPackets.UNCALIBRATED_GYRO, true);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, gyro_v, 3, UDPPackets.UNCALIBRATED_GYRO, true);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void provide_uncalib_accel(long timestamp, float[] accel_v) {
-        provide_sensor(timestamp, accel_v, 3, UDPPackets.UNCALIBRATED_ACCEL, true);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, accel_v, 3, UDPPackets.UNCALIBRATED_ACCEL, true);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void provide_uncalib_mag(long timestamp, float[] mag_v) {
-        provide_sensor(timestamp, mag_v, 3, UDPPackets.UNCALIBRATED_MAG, true);
-        num_packetsend++;
-        last_packetsend_time = System.currentTimeMillis();
+        synchronized (__lock) {
+            provide_sensor(timestamp, mag_v, 3, UDPPackets.UNCALIBRATED_MAG, true);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
     }
 
     public void set_listener(GyroListener gyroListener) {
