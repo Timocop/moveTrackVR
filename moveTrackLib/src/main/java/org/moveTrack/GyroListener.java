@@ -41,6 +41,7 @@ public class GyroListener implements SensorEventListener {
     private String sensor_type = "";
     private MadgwickAHRS filter_madgwick;
     private float madgwick_beta;
+
     private boolean use_stabilization;
     private boolean send_raw_sensors;
     private Handler mHandler;
@@ -123,7 +124,8 @@ public class GyroListener implements SensorEventListener {
         if (event.timestamp == 0)
             return;
 
-        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE) {
+        if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE
+                || event.sensor.getType() == Sensor.TYPE_GYROSCOPE_UNCALIBRATED) {
             float[] vec = new float[3];
             vec[0] = event.values[0];
             vec[1] = event.values[1];
@@ -135,7 +137,14 @@ public class GyroListener implements SensorEventListener {
             gyro_samples++;
 
             if (send_raw_sensors) {
-                udpClient.provide_gyro(event.timestamp, vec);
+                if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE)
+                {
+                    udpClient.provide_gyro(event.timestamp, vec);
+                }
+                else
+                {
+                    udpClient.provide_uncalib_gyro(event.timestamp, vec);
+                }
             }
 
             if (last_gyro_timestamp != 0) {
@@ -159,66 +168,28 @@ public class GyroListener implements SensorEventListener {
 
             last_gyro_timestamp = event.timestamp;
 
-        } else if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE_UNCALIBRATED) {
+        } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER
+                || event.sensor.getType() == Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) {
             float[] vec = new float[3];
             vec[0] = event.values[0];
             vec[1] = event.values[1];
             vec[2] = event.values[2];
 
-            gyro_vec[0] += vec[0];
-            gyro_vec[1] += vec[1];
-            gyro_vec[2] += vec[2];
-            gyro_samples++;
+            accel_vec = vec;
 
             if (send_raw_sensors) {
-                udpClient.provide_uncalib_gyro(event.timestamp, vec);
-            }
-
-            if (last_gyro_timestamp != 0) {
-                final float lastGyro = (event.timestamp - last_gyro_timestamp) * NS2S;
-                elapsed_gyro_time += (long) (lastGyro * 1000);
-
-                if (elapsed_gyro_time > MADGWICK_UPDATE_RATE_MS && gyro_samples > 0) {
-                    gyro_vec[0] /= gyro_samples;
-                    gyro_vec[1] /= gyro_samples;
-                    gyro_vec[2] /= gyro_samples;
-
-                    updateMadgwick(event.timestamp);
-                    elapsed_gyro_time = 0;
-
-                    gyro_vec[0] = 0.f;
-                    gyro_vec[1] = 0.f;
-                    gyro_vec[2] = 0.f;
-                    gyro_samples = 0;
+                if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
+                {
+                    udpClient.provide_accel(event.timestamp, vec);
+                }
+                else
+                {
+                    udpClient.provide_uncalib_accel(event.timestamp, vec);
                 }
             }
 
-            last_gyro_timestamp = event.timestamp;
-
-        } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
-            float[] vec = new float[3];
-            vec[0] = event.values[0];
-            vec[1] = event.values[1];
-            vec[2] = event.values[2];
-
-            accel_vec = vec;
-
-            if (send_raw_sensors) {
-                udpClient.provide_accel(event.timestamp, vec);
-            }
-        } else if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER_UNCALIBRATED) {
-            float[] vec = new float[3];
-            vec[0] = event.values[0];
-            vec[1] = event.values[1];
-            vec[2] = event.values[2];
-
-            accel_vec = vec;
-
-            if (send_raw_sensors) {
-                udpClient.provide_uncalib_accel(event.timestamp, vec);
-            }
-
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD
+                || event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED) {
             float[] vec = new float[3];
             vec[0] = event.values[0];
             vec[1] = event.values[1];
@@ -227,19 +198,14 @@ public class GyroListener implements SensorEventListener {
             mag_vec = vec;
 
             if (send_raw_sensors) {
-                udpClient.provide_mag(event.timestamp, vec);
-            }
-
-        } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD_UNCALIBRATED) {
-            float[] vec = new float[3];
-            vec[0] = event.values[0];
-            vec[1] = event.values[1];
-            vec[2] = event.values[2];
-
-            mag_vec = vec;
-
-            if (send_raw_sensors) {
-                udpClient.provide_uncalib_mag(event.timestamp, vec);
+                if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
+                {
+                    udpClient.provide_mag(event.timestamp, vec);
+                }
+                else
+                {
+                    udpClient.provide_uncalib_mag(event.timestamp, vec);
+                }
             }
 
         }
@@ -324,6 +290,12 @@ public class GyroListener implements SensorEventListener {
             beta_multi = 1.f;
 
         return (madgwick_beta * beta_multi);
+    }
+
+
+    private float lowpass_filter(float alpha, float old_val, float new_val)
+    {
+        return alpha * new_val + (1.f - alpha) * old_val;
     }
 
     @Override
