@@ -254,9 +254,9 @@ public class GyroListener implements SensorEventListener {
             {
                 udpClient.provide_rot(timeStamp, newQuat);
                 last_send_timestamp = timeStamp;
-            }
 
-            rot_vec = swapQuat;
+                rot_vec = swapQuat;
+            }
         }
 
         last_madgwick_timestamp = timeStamp;
