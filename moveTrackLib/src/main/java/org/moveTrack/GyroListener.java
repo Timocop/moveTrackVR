@@ -214,7 +214,7 @@ public class GyroListener implements SensorEventListener {
     private void updateMadgwick(long timeStamp) {
         if (last_madgwick_timestamp != 0) {
             final float deltaTime = (timeStamp - last_madgwick_timestamp) * NS2S;
-            final float beta = getBeta(deltaTime);
+            final float beta = getAdaptiveBeta(deltaTime);
 
             final float old_beta = filter_madgwick.getBeta();
             final float beta_smooth = lowpass_filter(0.1f, old_beta, beta);
@@ -279,7 +279,7 @@ public class GyroListener implements SensorEventListener {
         return false;
     }
 
-    private float getBeta(float deltaTime) {
+    private float getAdaptiveBeta(float deltaTime) {
         if (!use_stabilization)
             return madgwick_beta;
 
