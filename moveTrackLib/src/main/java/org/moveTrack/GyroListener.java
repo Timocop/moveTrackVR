@@ -216,7 +216,10 @@ public class GyroListener implements SensorEventListener {
             final float deltaTime = (timeStamp - last_madgwick_timestamp) * NS2S;
             final float beta = getBeta(deltaTime);
 
-            filter_madgwick.setBeta(beta);
+            final float old_beta = filter_madgwick.getBeta();
+            final float beta_smooth = lowpass_filter(0.1f, old_beta, beta);
+
+            filter_madgwick.setBeta(beta_smooth);
             filter_madgwick.setSamplePeriod(deltaTime);
 
             if (MagSensor != null) {
