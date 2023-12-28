@@ -21,3 +21,4 @@ This app may also be compatible with some Wear OS devices.
 
 ## Building
 The application can be easily built with Android Studio by opening the project in Android Studio.
+
