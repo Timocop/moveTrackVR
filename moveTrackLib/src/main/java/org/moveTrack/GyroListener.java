@@ -14,6 +14,7 @@ public class GyroListener implements SensorEventListener {
     private static final float NS2S = 1.0f / 1000000000.0f;
 
     private static final long MADGWICK_UPDATE_RATE_MS = 5;
+    private static final long MADGWICK_RESET_MS = 3000;
 
     private static final float STABILIZATION_GYRO_MAX_DEG = 1.f;
     private static final float STABILIZATION_GYRO_MIN_DEG = 0.1f;
@@ -41,6 +42,7 @@ public class GyroListener implements SensorEventListener {
     private String sensor_type = "";
     private MadgwickAHRS filter_madgwick;
     private float madgwick_beta;
+    private long madgwick_reset_count;
 
     private boolean use_stabilization;
     private boolean send_raw_sensors;
@@ -90,6 +92,7 @@ public class GyroListener implements SensorEventListener {
         if (madgwick_beta > 1.0f)
             madgwick_beta = 1.0f;
 
+        madgwick_reset_count = MADGWICK_RESET_MS/MADGWICK_UPDATE_RATE_MS;
         use_stabilization = configSettings.stabilization;
         send_raw_sensors = configSettings.rawSensors;
 
@@ -280,6 +283,11 @@ public class GyroListener implements SensorEventListener {
     }
 
     private float getAdaptiveBeta(float deltaTime) {
+        if (madgwick_reset_count > 0)  {
+            madgwick_reset_count--;
+            return 1.0f;
+        }
+
         if (!use_stabilization)
             return madgwick_beta;
 
