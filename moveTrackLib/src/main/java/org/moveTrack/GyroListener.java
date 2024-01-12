@@ -41,8 +41,9 @@ public class GyroListener implements SensorEventListener {
     private int ROTATION_SENSOR_TYPE;
     private String sensor_type = "";
     private MadgwickAHRS filter_madgwick;
+    private MadgwickAHRS filter_madgwick_quick;
     private float madgwick_beta;
-    private long madgwick_reset_count;
+    private boolean madgwick_reset;
 
     private boolean use_stabilization;
     private boolean send_raw_sensors;
@@ -92,7 +93,7 @@ public class GyroListener implements SensorEventListener {
         if (madgwick_beta > 1.0f)
             madgwick_beta = 1.0f;
 
-        madgwick_reset_count = MADGWICK_RESET_MS/MADGWICK_UPDATE_RATE_MS;
+        madgwick_reset = true;
         use_stabilization = configSettings.stabilization;
         send_raw_sensors = configSettings.rawSensors;
 
@@ -106,6 +107,7 @@ public class GyroListener implements SensorEventListener {
         elapsed_gyro_time = 0;
         gyro_samples = 0;
         filter_madgwick = new MadgwickAHRS(0.0f, madgwick_beta);
+        filter_madgwick_quick = new MadgwickAHRS(0.0f, 0.9f);
 
         udpClient = udpClient_v;
         udpClient.set_listener(this);
@@ -217,32 +219,68 @@ public class GyroListener implements SensorEventListener {
     private void updateMadgwick(long timeStamp) {
         if (last_madgwick_timestamp != 0) {
             final float deltaTime = (timeStamp - last_madgwick_timestamp) * NS2S;
-            final float beta = getAdaptiveBeta(deltaTime);
 
-            final float old_beta = filter_madgwick.getBeta();
-            final float beta_smooth = lowpass_filter(0.1f, old_beta, beta);
+            { // Main adgwick
+                final float beta = getAdaptiveBeta(deltaTime);
 
-            filter_madgwick.setBeta(beta_smooth);
-            filter_madgwick.setSamplePeriod(deltaTime);
+                final float old_beta = filter_madgwick.getBeta();
+                final float beta_smooth = lowpass_filter(0.1f, old_beta, beta);
 
-            if (MagSensor != null) {
-                filter_madgwick.update(
-                        gyro_vec[0], gyro_vec[1], gyro_vec[2],
-                        accel_vec[0], accel_vec[1], accel_vec[2],
-                        mag_vec[0], mag_vec[1], mag_vec[2]);
-            } else {
-                filter_madgwick.update(
-                        gyro_vec[0], gyro_vec[1], gyro_vec[2],
-                        accel_vec[0], accel_vec[1], accel_vec[2]);
+                filter_madgwick.setBeta(beta_smooth);
+                filter_madgwick.setSamplePeriod(deltaTime);
+
+                if (MagSensor != null) {
+                    filter_madgwick.update(
+                            gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                            accel_vec[0], accel_vec[1], accel_vec[2],
+                            mag_vec[0], mag_vec[1], mag_vec[2]);
+                } else {
+                    filter_madgwick.update(
+                            gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                            accel_vec[0], accel_vec[1], accel_vec[2]);
+                }
+            }
+            { // Quick Madgwick
+                filter_madgwick_quick.setSamplePeriod(deltaTime);
+
+                if (MagSensor != null) {
+                    filter_madgwick_quick.update(
+                            gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                            accel_vec[0], accel_vec[1], accel_vec[2],
+                            mag_vec[0], mag_vec[1], mag_vec[2]);
+                } else {
+                    filter_madgwick_quick.update(
+                            gyro_vec[0], gyro_vec[1], gyro_vec[2],
+                            accel_vec[0], accel_vec[1], accel_vec[2]);
+                }
             }
 
             float[] quat = filter_madgwick.getQuaternion();
+            float[] quat2 = filter_madgwick_quick.getQuaternion();
             Quaternion swapQuat = new Quaternion(
                     quat[1],
                     quat[2],
                     quat[3],
                     quat[0]
             );
+            Quaternion swapQuat2 = new Quaternion(
+                    quat2[1],
+                    quat2[2],
+                    quat2[3],
+                    quat2[0]
+            );
+
+            // If angle difference is too big, attempt to quick reset.
+            if (madgwick_reset) {
+                if (calculateQuaternionAngle(swapQuat, swapQuat2) < 2.5f) {
+                    madgwick_reset = false;
+                }
+            }
+            else {
+                if (calculateQuaternionAngle(swapQuat, swapQuat2) > 25.f) {
+                    madgwick_reset = true;
+                }
+            }
 
             // For some reason ROTATION_VECTOR quaternion and MADGWICK quaternion have a 90° yaw difference.
             // Add a 90° offset to make it compatible with owoTrack servers.
@@ -283,10 +321,8 @@ public class GyroListener implements SensorEventListener {
     }
 
     private float getAdaptiveBeta(float deltaTime) {
-        if (madgwick_reset_count > 0)  {
-            madgwick_reset_count--;
-            return 1.0f;
-        }
+        if (madgwick_reset)
+            return 0.5f;
 
         if (!use_stabilization)
             return madgwick_beta;
@@ -307,6 +343,19 @@ public class GyroListener implements SensorEventListener {
     private float lowpass_filter(float alpha, float old_val, float new_val)
     {
         return alpha * new_val + (1.f - alpha) * old_val;
+    }
+
+    public static double calculateQuaternionAngle(Quaternion q1, Quaternion q2) {
+        q1.normalizeThis();
+        q2.normalizeThis();
+
+        double dotProduct = (q1.getX() * q2.getX() + q1.getY() * q2.getY() + q1.getZ() * q2.getZ() + q1.getW() * q2.getW());
+
+        double angle = 2 * Math.acos(Math.abs(dotProduct));
+
+        angle = Math.toDegrees(angle);
+
+        return angle;
     }
 
     @Override
