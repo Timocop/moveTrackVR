@@ -159,6 +159,32 @@
                 android:background="?android:attr/listDivider" />
 
             <Switch
+                android:id="@+id/editSmartCorrection"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:text="Smart Drift Correction"
+                android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+                android:textSize="16sp" />
+
+            <TextView
+                android:id="@+id/textView7"
+                android:layout_width="match_parent"
+                android:layout_height="wrap_content"
+                android:drawableStart="@android:drawable/ic_menu_info_details"
+                android:text="Smart Direct Correction detects excessive orientation deviations and attempts to aggressively correct the drift."
+                android:textStyle="italic" />
+
+            <Space
+                android:layout_width="match_parent"
+                android:layout_height="16dp" />
+
+            <View
+                android:id="@+id/divider5"
+                android:layout_width="match_parent"
+                android:layout_height="1dp"
+                android:background="?android:attr/listDivider" />
+
+            <Switch
                 android:id="@+id/editRawData"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"

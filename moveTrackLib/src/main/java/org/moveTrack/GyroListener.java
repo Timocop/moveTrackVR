@@ -46,6 +46,7 @@ public class GyroListener implements SensorEventListener {
     private boolean madgwick_reset;
 
     private boolean use_stabilization;
+    private boolean use_smartcorrection;
     private boolean send_raw_sensors;
     private Handler mHandler;
 
@@ -93,9 +94,10 @@ public class GyroListener implements SensorEventListener {
         if (madgwick_beta > 1.0f)
             madgwick_beta = 1.0f;
 
-        madgwick_reset = true;
+        madgwick_reset = false;
         use_stabilization = configSettings.stabilization;
         send_raw_sensors = configSettings.rawSensors;
+        use_smartcorrection = configSettings.smartCorrection;
 
         rot_vec = new Quaternion(0.0,0.0,0.0,1.0);
         gyro_vec = new float[3];
@@ -240,7 +242,8 @@ public class GyroListener implements SensorEventListener {
                             accel_vec[0], accel_vec[1], accel_vec[2]);
                 }
             }
-            { // Quick Madgwick
+
+            if (use_smartcorrection) { // Quick Madgwick
                 filter_madgwick_quick.setSamplePeriod(deltaTime);
 
                 if (MagSensor != null) {
@@ -271,14 +274,16 @@ public class GyroListener implements SensorEventListener {
             );
 
             // If angle difference is too big, attempt to quick reset.
-            if (madgwick_reset) {
-                if (calculateQuaternionAngle(swapQuat, swapQuat2) < 2.5f) {
-                    madgwick_reset = false;
+            if (use_smartcorrection) {
+                if (madgwick_reset) {
+                    if (calculateQuaternionAngle(swapQuat, swapQuat2) < 2.5f) {
+                        madgwick_reset = false;
+                    }
                 }
-            }
-            else {
-                if (calculateQuaternionAngle(swapQuat, swapQuat2) > 25.f) {
-                    madgwick_reset = true;
+                else {
+                    if (calculateQuaternionAngle(swapQuat, swapQuat2) > 25.f) {
+                        madgwick_reset = true;
+                    }
                 }
             }
 

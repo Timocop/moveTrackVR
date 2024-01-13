@@ -90,9 +90,10 @@ public class MainActivity extends AppCompatActivity {
 
         AutoDiscoverer.ConfigSettings configSettings = new AutoDiscoverer.ConfigSettings();
         configSettings.magnetometerEnabled = prefs.getBoolean("magnetometer", true);
-        configSettings.madgwickBeta = prefs.getFloat("madgwickbeta", 0.2f);
+        configSettings.madgwickBeta = prefs.getFloat("madgwickbeta", 0.1f);
         configSettings.stabilization = prefs.getBoolean("stabilization", false);
         configSettings.rawSensors = prefs.getBoolean("rawsensor", false);
+        configSettings.smartCorrection = prefs.getBoolean("smartcorrection", true);
         return configSettings;
     }
 

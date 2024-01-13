@@ -53,7 +53,7 @@ public class homeMenu extends Fragment {
         mainIntent.putExtra("ipAddrTxt", "255.255.255.255");
         mainIntent.putExtra("port_no", 6969);
         mainIntent.putExtra("magnetometer", true);
-        mainIntent.putExtra("madgwickbeta", 0.2f);
+        mainIntent.putExtra("madgwickbeta", 0.1f);
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(mainIntent);

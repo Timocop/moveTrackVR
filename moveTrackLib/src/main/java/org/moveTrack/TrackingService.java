@@ -79,6 +79,7 @@ public class TrackingService extends Service {
         cfgSettings.madgwickBeta = data.getFloat("madgwickbeta");
         cfgSettings.stabilization = data.getBoolean("stabilization");
         cfgSettings.rawSensors = data.getBoolean("rawsensor");
+        cfgSettings.smartCorrection = data.getBoolean("smartcorrection");
 
         System.out.println("Start command");
         foregroundstuff();

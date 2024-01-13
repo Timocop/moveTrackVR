@@ -90,6 +90,7 @@ public class AutoDiscoverer {
         mainIntent.putExtra("madgwickbeta", configSettings.madgwickBeta);
         mainIntent.putExtra("stabilization", configSettings.stabilization);
         mainIntent.putExtra("rawsensor", configSettings.rawSensors);
+        mainIntent.putExtra("smartcorrection", configSettings.smartCorrection);
 
         // start service
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -146,6 +147,7 @@ public class AutoDiscoverer {
         public float madgwickBeta;
         public boolean stabilization;
         public boolean rawSensors;
+        public boolean smartCorrection;
     }
 
     public static class DiscoveryResult {

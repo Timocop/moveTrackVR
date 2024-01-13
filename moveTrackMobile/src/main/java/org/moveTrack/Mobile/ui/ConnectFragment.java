@@ -35,6 +35,7 @@ public class ConnectFragment extends GenericBindingFragment {
     SeekBar madgwickBetaBox = null;
     Switch stabilizationBox = null;
     Switch sendRawBox = null;
+    Switch smartCorrection = null;
     SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
         public void onSharedPreferenceChanged(SharedPreferences sharedPreferences, java.lang.String s) {
@@ -96,6 +97,9 @@ public class ConnectFragment extends GenericBindingFragment {
 
         if (sendRawBox != null)
             sendRawBox.setEnabled(!to);
+
+        if (smartCorrection != null)
+            smartCorrection.setEnabled(!to);
     }
 
     @Override
@@ -118,6 +122,7 @@ public class ConnectFragment extends GenericBindingFragment {
         madgwickBetaBox = curr_view.findViewById(R.id.seekMadgwickBeta);
         stabilizationBox = curr_view.findViewById(R.id.editStabilization);
         sendRawBox = curr_view.findViewById(R.id.editRawData);
+        smartCorrection = curr_view.findViewById(R.id.editSmartCorrection);
 
 
         if (!MainActivity.hasAnySensorsAtAll()) {
@@ -128,6 +133,7 @@ public class ConnectFragment extends GenericBindingFragment {
             madgwickBetaBox.setEnabled(false);
             stabilizationBox.setEnabled(false);
             sendRawBox.setEnabled(false);
+            smartCorrection.setEnabled(false);
 
             TextView statusText = curr_view.findViewById(R.id.statusText);
             statusText.setText(R.string.sensors_missing_all);
@@ -137,9 +143,10 @@ public class ConnectFragment extends GenericBindingFragment {
             ipAddrTxt.setText(prefs.getString("ip_address", ""));
             portTxt.setText(String.valueOf(prefs.getInt("port", 6969)));
             magBox.setChecked(prefs.getBoolean("magnetometer", true));
-            madgwickBetaBox.setProgress((int) (prefs.getFloat("madgwickbeta", 0.2f) * 10.f));
+            madgwickBetaBox.setProgress((int) (prefs.getFloat("madgwickbeta", 0.1f) * 10.f));
             stabilizationBox.setChecked(prefs.getBoolean("stabilization", false));
             sendRawBox.setChecked(prefs.getBoolean("rawsensor", false));
+            smartCorrection.setChecked(prefs.getBoolean("smartcorrection", true));
 
             connect_button.setOnClickListener(v -> onConnect(false));
 
@@ -186,6 +193,7 @@ public class ConnectFragment extends GenericBindingFragment {
     private boolean get_rawsensor() {
         return sendRawBox.isChecked();
     }
+    private boolean get_smartconnection() {  return smartCorrection.isChecked(); }
 
     private void onConnect(boolean auto) {
         if ((service_v != null) && (service_v.is_running())) {
@@ -210,6 +218,7 @@ public class ConnectFragment extends GenericBindingFragment {
         mainIntent.putExtra("madgwickbeta", get_madgwickbeta());
         mainIntent.putExtra("stabilization", get_stabilization());
         mainIntent.putExtra("rawsensor", get_rawsensor());
+        mainIntent.putExtra("smartcorrection", get_smartconnection());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             getContext().startForegroundService(mainIntent);
@@ -227,7 +236,8 @@ public class ConnectFragment extends GenericBindingFragment {
                 magBox == null ||
                 madgwickBetaBox == null ||
                 stabilizationBox == null ||
-                sendRawBox == null)
+                sendRawBox == null ||
+                smartCorrection == null)
             return;
 
         SharedPreferences prefs = get_prefs();
@@ -239,6 +249,7 @@ public class ConnectFragment extends GenericBindingFragment {
         editor.putFloat("madgwickbeta", get_madgwickbeta());
         editor.putBoolean("stabilization", get_stabilization());
         editor.putBoolean("rawsensor", get_rawsensor());
+        editor.putBoolean("smartcorrection", get_smartconnection());
 
         editor.apply();
     }
