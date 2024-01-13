@@ -171,7 +171,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:drawableStart="@android:drawable/ic_menu_info_details"
-                android:text="Smart Direct Correction detects excessive orientation deviations and attempts to aggressively correct the drift."
+                android:text="Smart Drift Correction detects excessive orientation deviations and attempts to aggressively correct the drift."
                 android:textStyle="italic" />
 
             <Space
