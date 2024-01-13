@@ -111,7 +111,7 @@
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:drawableStart="@android:drawable/ic_menu_info_details"
-                android:text="Stabilization exclusively corrects drift during device motion and does not apply when the device is stationary."
+                android:text="Stabilization exclusively corrects drift during device motion and does not apply drift correction when the device is stationary."
                 android:textStyle="italic" />
 
             <Space
