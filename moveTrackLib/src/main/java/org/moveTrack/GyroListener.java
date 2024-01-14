@@ -14,7 +14,9 @@ public class GyroListener implements SensorEventListener {
     private static final float NS2S = 1.0f / 1000000000.0f;
 
     private static final long MADGWICK_UPDATE_RATE_MS = 5;
-    private static final long MADGWICK_RESET_MS = 3000;
+    private static final long MADGWICK_SMARTRESET_MS = 500;
+    private static final float MADGWICK_SMARTRESET_DEG_MIN = 5.0f;
+    private static final float MADGWICK_SMARTRESET_DEG_MAX = 25.0f;
 
     private static final float STABILIZATION_GYRO_MAX_DEG = 1.f;
     private static final float STABILIZATION_GYRO_MIN_DEG = 0.1f;
@@ -47,6 +49,7 @@ public class GyroListener implements SensorEventListener {
 
     private boolean use_stabilization;
     private boolean use_smartcorrection;
+    private float smartcorrection_time;
     private boolean send_raw_sensors;
     private Handler mHandler;
 
@@ -98,6 +101,7 @@ public class GyroListener implements SensorEventListener {
         use_stabilization = configSettings.stabilization;
         send_raw_sensors = configSettings.rawSensors;
         use_smartcorrection = configSettings.smartCorrection;
+        smartcorrection_time = 0.0f;
 
         rot_vec = new Quaternion(0.0,0.0,0.0,1.0);
         gyro_vec = new float[3];
@@ -276,7 +280,8 @@ public class GyroListener implements SensorEventListener {
             // If angle difference is too big, attempt to quick reset.
             if (use_smartcorrection) {
                 if (madgwick_reset) {
-                    if (calculateQuaternionAngle(swapQuat, swapQuat2) < 2.5f) {
+                    if (calculateQuaternionAngle(swapQuat, swapQuat2) < MADGWICK_SMARTRESET_DEG_MIN) {
+                        smartcorrection_time = 0.0f;
                         madgwick_reset = false;
                     }
                 }
@@ -327,7 +332,7 @@ public class GyroListener implements SensorEventListener {
 
     private float getAdaptiveBeta(float deltaTime) {
         if (madgwick_reset)
-            return 0.5f;
+            return 0.9f;
 
         if (!use_stabilization)
             return madgwick_beta;
@@ -350,17 +355,14 @@ public class GyroListener implements SensorEventListener {
         return alpha * new_val + (1.f - alpha) * old_val;
     }
 
-    public static double calculateQuaternionAngle(Quaternion q1, Quaternion q2) {
+    private double calculateQuaternionAngle(Quaternion q1, Quaternion q2) {
         q1.normalizeThis();
         q2.normalizeThis();
 
-        double dotProduct = (q1.getX() * q2.getX() + q1.getY() * q2.getY() + q1.getZ() * q2.getZ() + q1.getW() * q2.getW());
+        float dotProduct = (float)(q1.getX() * q2.getX() + q1.getY() * q2.getY() + q1.getZ() * q2.getZ() + q1.getW() * q2.getW());
+        float angle = (float)(2 * Math.acos(Math.abs(dotProduct)));
 
-        double angle = 2 * Math.acos(Math.abs(dotProduct));
-
-        angle = Math.toDegrees(angle);
-
-        return angle;
+        return Math.toDegrees(angle);
     }
 
     @Override
