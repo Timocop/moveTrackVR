@@ -286,8 +286,16 @@ public class GyroListener implements SensorEventListener {
                     }
                 }
                 else {
-                    if (calculateQuaternionAngle(swapQuat, swapQuat2) > 25.f) {
-                        madgwick_reset = true;
+                    if (calculateQuaternionAngle(swapQuat, swapQuat2) > MADGWICK_SMARTRESET_DEG_MAX) {
+                        smartcorrection_time += deltaTime;
+
+                        if (smartcorrection_time > (MADGWICK_SMARTRESET_MS / 1000.f)) {
+                            madgwick_reset = true;
+                        }
+                    }
+                    else {
+                        if (smartcorrection_time > 0.0f)
+                            smartcorrection_time = 0.0f;
                     }
                 }
             }
