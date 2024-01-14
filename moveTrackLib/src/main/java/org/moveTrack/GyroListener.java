@@ -280,13 +280,13 @@ public class GyroListener implements SensorEventListener {
             // If angle difference is too big, attempt to quick reset.
             if (use_smartcorrection) {
                 if (madgwick_reset) {
-                    if (calculateQuaternionAngle(swapQuat, swapQuat2) < MADGWICK_SMARTRESET_DEG_MIN) {
+                    if (Math.abs(calculateQuaternionAngle(swapQuat, swapQuat2)) < MADGWICK_SMARTRESET_DEG_MIN) {
                         smartcorrection_time = 0.0f;
                         madgwick_reset = false;
                     }
                 }
                 else {
-                    if (calculateQuaternionAngle(swapQuat, swapQuat2) > MADGWICK_SMARTRESET_DEG_MAX) {
+                    if (Math.abs(calculateQuaternionAngle(swapQuat, swapQuat2)) > MADGWICK_SMARTRESET_DEG_MAX) {
                         smartcorrection_time += deltaTime;
 
                         if (smartcorrection_time > (MADGWICK_SMARTRESET_MS / 1000.f)) {
