@@ -36,6 +36,12 @@ public class MadgwickAHRS {
     public float[] getQuaternion() {
         return quaternion;
     }
+    public void setQuaternion(float w, float x, float y, float z) {
+        quaternion[0] = w;
+        quaternion[1] = x;
+        quaternion[2] = y;
+        quaternion[3] = z;
+    }
 
     public void update(float gx, float gy, float gz, float ax, float ay,
                        float az, float mx, float my, float mz) {

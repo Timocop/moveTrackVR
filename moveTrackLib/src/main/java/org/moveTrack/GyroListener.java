@@ -5,6 +5,7 @@ import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
 import android.hardware.SensorManager;
 import android.os.Handler;
+import android.util.Log;
 
 import org.moveTrack.math.MadgwickAHRS;
 import org.moveTrack.math.Quaternion;
@@ -15,8 +16,10 @@ public class GyroListener implements SensorEventListener {
 
     private static final long MADGWICK_UPDATE_RATE_MS = 5;
     private static final long MADGWICK_SMARTRESET_MS = 500;
+    private static final float MADGWICK_SMARTRESET_GRAV_STABLE = 0.25f;
     private static final float MADGWICK_SMARTRESET_DEG_MIN = 5.0f;
     private static final float MADGWICK_SMARTRESET_DEG_MAX = 25.0f;
+    private static final boolean MADGWICK_SMARTRESET_INSTANT = true;
 
     private static final float STABILIZATION_GYRO_MAX_DEG = 1.f;
     private static final float STABILIZATION_GYRO_MIN_DEG = 0.1f;
@@ -33,6 +36,8 @@ public class GyroListener implements SensorEventListener {
     Quaternion rot_vec;
     private float[] gyro_vec;
     private float[] accel_vec;
+    private float[] gav_vec;
+    private float[] lin_accel_vec;
     private float[] mag_vec;
 
     private long last_send_timestamp;
@@ -106,6 +111,8 @@ public class GyroListener implements SensorEventListener {
         rot_vec = new Quaternion(0.0,0.0,0.0,1.0);
         gyro_vec = new float[3];
         accel_vec = new float[3];
+        gav_vec = new float[3];
+        lin_accel_vec = new float[3];
         mag_vec = new float[3];
         last_gyro_timestamp = 0;
         last_madgwick_timestamp = 0;
@@ -186,6 +193,18 @@ public class GyroListener implements SensorEventListener {
             vec[1] = event.values[1];
             vec[2] = event.values[2];
 
+            {
+                final float alpha = 0.8f;
+
+                gav_vec[0] = lowpass_filter(alpha, gav_vec[0], vec[0]);
+                gav_vec[1] = lowpass_filter(alpha, gav_vec[1], vec[1]);
+                gav_vec[2] = lowpass_filter(alpha, gav_vec[2], vec[2]);
+
+                lin_accel_vec[0] = vec[0] - gav_vec[0];
+                lin_accel_vec[1] = vec[1] - gav_vec[1];
+                lin_accel_vec[2] = vec[2] - gav_vec[2];
+            }
+
             accel_vec = vec;
 
             if (send_raw_sensors) {
@@ -227,7 +246,14 @@ public class GyroListener implements SensorEventListener {
             final float deltaTime = (timeStamp - last_madgwick_timestamp) * NS2S;
 
             { // Main adgwick
-                final float beta = getAdaptiveBeta(deltaTime);
+                float beta;
+
+                if (madgwick_reset) {
+                    beta = 0.9f;
+                }
+                else {
+                    beta = getAdaptiveBeta(deltaTime);
+                }
 
                 final float old_beta = filter_madgwick.getBeta();
                 final float beta_smooth = lowpass_filter(0.1f, old_beta, beta);
@@ -277,20 +303,49 @@ public class GyroListener implements SensorEventListener {
                     quat2[0]
             );
 
+            float accel_g = 1.0f + (float)Math.sqrt(
+                    lin_accel_vec[0] * lin_accel_vec[0] +
+                    lin_accel_vec[1] * lin_accel_vec[1] +
+                    lin_accel_vec[2] * lin_accel_vec[2]);
+
             // If angle difference is too big, attempt to quick reset.
             if (use_smartcorrection) {
                 if (madgwick_reset) {
+                    // Stop when deviation is too small
                     if (Math.abs(calculateQuaternionAngle(swapQuat, swapQuat2)) < MADGWICK_SMARTRESET_DEG_MIN) {
-                        smartcorrection_time = 0.0f;
+                        madgwick_reset = false;
+                    }
+
+                    // Stop if gravity is unstable
+                    if (accel_g > MADGWICK_SMARTRESET_GRAV_STABLE && accel_g < 1.f + (1.f - MADGWICK_SMARTRESET_GRAV_STABLE)) {
                         madgwick_reset = false;
                     }
                 }
                 else {
                     if (Math.abs(calculateQuaternionAngle(swapQuat, swapQuat2)) > MADGWICK_SMARTRESET_DEG_MAX) {
-                        smartcorrection_time += deltaTime;
+                        // Make sure smart madgwick its kind of stable
+                        if (accel_g > MADGWICK_SMARTRESET_GRAV_STABLE && accel_g < 1.f + (1.f - MADGWICK_SMARTRESET_GRAV_STABLE)) {
+                            smartcorrection_time += deltaTime;
 
-                        if (smartcorrection_time > (MADGWICK_SMARTRESET_MS / 1000.f)) {
-                            madgwick_reset = true;
+                            if (smartcorrection_time > (MADGWICK_SMARTRESET_MS / 1000.f)) {
+                                if (MADGWICK_SMARTRESET_INSTANT) {
+                                    swapQuat = new Quaternion(swapQuat2);
+                                    smartcorrection_time = 0.0f;
+
+                                    filter_madgwick.setQuaternion(
+                                            (float)swapQuat.getW(),
+                                            (float)swapQuat.getX(),
+                                            (float)swapQuat.getY(),
+                                            (float)swapQuat.getZ());
+                                }
+                                else {
+                                    madgwick_reset = true;
+                                }
+                            }
+                        }
+                        else {
+                            if (smartcorrection_time > 0.0f)
+                                smartcorrection_time = 0.0f;
                         }
                     }
                     else {
@@ -298,6 +353,10 @@ public class GyroListener implements SensorEventListener {
                             smartcorrection_time = 0.0f;
                     }
                 }
+            }
+            else {
+                if (madgwick_reset)
+                    madgwick_reset = false;
             }
 
             // For some reason ROTATION_VECTOR quaternion and MADGWICK quaternion have a 90° yaw difference.
@@ -312,8 +371,7 @@ public class GyroListener implements SensorEventListener {
             // Keep alive
             final float last_send = (timeStamp - last_send_timestamp) * NS2S;
 
-            if (!OPTIMIZE_ROTATION_PACKET_SEND || last_send > 0.5f || !quat_equal(swapQuat, rot_vec))
-            {
+            if (!OPTIMIZE_ROTATION_PACKET_SEND || last_send > 0.5f || !quat_equal(swapQuat, rot_vec))  {
                 udpClient.provide_rot(timeStamp, newQuat);
                 last_send_timestamp = timeStamp;
 
@@ -339,9 +397,6 @@ public class GyroListener implements SensorEventListener {
     }
 
     private float getAdaptiveBeta(float deltaTime) {
-        if (madgwick_reset)
-            return 0.9f;
-
         if (!use_stabilization)
             return madgwick_beta;
 
