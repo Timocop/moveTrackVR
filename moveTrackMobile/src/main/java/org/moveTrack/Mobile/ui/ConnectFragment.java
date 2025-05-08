@@ -10,6 +10,7 @@ import android.view.View;
 import android.view.ViewGroup;
 import android.widget.Button;
 import android.widget.EditText;
+import android.widget.RadioButton;
 import android.widget.SeekBar;
 import android.widget.Switch;
 import android.widget.TextView;
@@ -34,7 +35,9 @@ public class ConnectFragment extends GenericBindingFragment {
     Switch magBox = null;
     SeekBar madgwickBetaBox = null;
     Switch stabilizationBox = null;
-    Switch sendRawBox = null;
+    RadioButton sensorDataDisabled = null;
+    RadioButton sensorDataCompat = null;
+    RadioButton sensorDataAll = null;
     Switch smartCorrection = null;
     SharedPreferences.OnSharedPreferenceChangeListener listener = new SharedPreferences.OnSharedPreferenceChangeListener() {
         @Override
@@ -95,8 +98,14 @@ public class ConnectFragment extends GenericBindingFragment {
         if (stabilizationBox != null)
             stabilizationBox.setEnabled(!to);
 
-        if (sendRawBox != null)
-            sendRawBox.setEnabled(!to);
+        if (sensorDataDisabled != null)
+            sensorDataDisabled.setEnabled(!to);
+
+        if (sensorDataAll != null)
+            sensorDataAll.setEnabled(!to);
+
+        if (sensorDataDisabled != null)
+            sensorDataDisabled.setEnabled(!to);
 
         if (smartCorrection != null)
             smartCorrection.setEnabled(!to);
@@ -121,7 +130,9 @@ public class ConnectFragment extends GenericBindingFragment {
         magBox = curr_view.findViewById(R.id.editMagnetometer);
         madgwickBetaBox = curr_view.findViewById(R.id.seekMadgwickBeta);
         stabilizationBox = curr_view.findViewById(R.id.editStabilization);
-        sendRawBox = curr_view.findViewById(R.id.editRawData);
+        sensorDataDisabled = curr_view.findViewById(R.id.radioSensordata0);
+        sensorDataCompat = curr_view.findViewById(R.id.radioSensordata1);
+        sensorDataAll = curr_view.findViewById(R.id.radioSensordata2);
         smartCorrection = curr_view.findViewById(R.id.editSmartCorrection);
 
 
@@ -132,7 +143,9 @@ public class ConnectFragment extends GenericBindingFragment {
             magBox.setEnabled(false);
             madgwickBetaBox.setEnabled(false);
             stabilizationBox.setEnabled(false);
-            sendRawBox.setEnabled(false);
+            sensorDataDisabled.setEnabled(false);
+            sensorDataCompat.setEnabled(false);
+            sensorDataAll.setEnabled(false);
             smartCorrection.setEnabled(false);
 
             TextView statusText = curr_view.findViewById(R.id.statusText);
@@ -145,7 +158,23 @@ public class ConnectFragment extends GenericBindingFragment {
             magBox.setChecked(prefs.getBoolean("magnetometer", true));
             madgwickBetaBox.setProgress((int) (prefs.getFloat("madgwickbeta", 0.1f) * 10.f));
             stabilizationBox.setChecked(prefs.getBoolean("stabilization", false));
-            sendRawBox.setChecked(prefs.getBoolean("rawsensor", false));
+            switch(prefs.getInt("sensordata", 0)) {
+                case 0:
+                    sensorDataDisabled.setChecked(true);
+                    sensorDataCompat.setChecked(false);
+                    sensorDataAll.setChecked(false);
+                    break;
+                case 1:
+                    sensorDataDisabled.setChecked(false);
+                    sensorDataCompat.setChecked(true);
+                    sensorDataAll.setChecked(false);
+                    break;
+                case 2:
+                    sensorDataDisabled.setChecked(false);
+                    sensorDataCompat.setChecked(false);
+                    sensorDataAll.setChecked(true);
+                    break;
+            }
             smartCorrection.setChecked(prefs.getBoolean("smartcorrection", true));
 
             connect_button.setOnClickListener(v -> onConnect(false));
@@ -190,8 +219,15 @@ public class ConnectFragment extends GenericBindingFragment {
         return stabilizationBox.isChecked();
     }
 
-    private boolean get_rawsensor() {
-        return sendRawBox.isChecked();
+    private int get_sensordata() {
+        if(sensorDataDisabled.isChecked())
+            return 0;
+        if(sensorDataCompat.isChecked())
+            return 1;
+        if(sensorDataAll.isChecked())
+            return 2;
+
+        return 0;
     }
     private boolean get_smartconnection() {  return smartCorrection.isChecked(); }
 
@@ -217,7 +253,7 @@ public class ConnectFragment extends GenericBindingFragment {
         mainIntent.putExtra("magnetometer", get_mag());
         mainIntent.putExtra("madgwickbeta", get_madgwickbeta());
         mainIntent.putExtra("stabilization", get_stabilization());
-        mainIntent.putExtra("rawsensor", get_rawsensor());
+        mainIntent.putExtra("sensordata", get_sensordata());
         mainIntent.putExtra("smartcorrection", get_smartconnection());
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -236,7 +272,9 @@ public class ConnectFragment extends GenericBindingFragment {
                 magBox == null ||
                 madgwickBetaBox == null ||
                 stabilizationBox == null ||
-                sendRawBox == null ||
+                sensorDataDisabled == null ||
+                sensorDataCompat == null ||
+                sensorDataAll == null ||
                 smartCorrection == null)
             return;
 
@@ -248,7 +286,7 @@ public class ConnectFragment extends GenericBindingFragment {
         editor.putBoolean("magnetometer", get_mag());
         editor.putFloat("madgwickbeta", get_madgwickbeta());
         editor.putBoolean("stabilization", get_stabilization());
-        editor.putBoolean("rawsensor", get_rawsensor());
+        editor.putInt("sensordata", get_sensordata());
         editor.putBoolean("smartcorrection", get_smartconnection());
 
         editor.apply();

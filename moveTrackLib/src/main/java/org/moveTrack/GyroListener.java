@@ -55,7 +55,7 @@ public class GyroListener implements SensorEventListener {
     private boolean use_stabilization;
     private boolean use_smartcorrection;
     private float smartcorrection_time;
-    private boolean send_raw_sensors;
+    private int sensor_data;
     private Handler mHandler;
 
     GyroListener(SensorManager manager, UDPGyroProviderClient udpClient_v, AppStatus logger, AutoDiscoverer.ConfigSettings configSettings) throws Exception {
@@ -104,7 +104,7 @@ public class GyroListener implements SensorEventListener {
 
         madgwick_reset = false;
         use_stabilization = configSettings.stabilization;
-        send_raw_sensors = configSettings.rawSensors;
+        sensor_data = configSettings.sensorData;
         use_smartcorrection = configSettings.smartCorrection;
         smartcorrection_time = 0.0f;
 
@@ -154,17 +154,6 @@ public class GyroListener implements SensorEventListener {
             gyro_vec[2] += vec[2];
             gyro_samples++;
 
-            if (send_raw_sensors) {
-                if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE)
-                {
-                    udpClient.provide_gyro(event.timestamp, vec);
-                }
-                else
-                {
-                    udpClient.provide_uncalib_gyro(event.timestamp, vec);
-                }
-            }
-
             if (last_gyro_timestamp != 0) {
                 final float lastGyro = (event.timestamp - last_gyro_timestamp) * NS2S;
                 elapsed_gyro_time += (long) (lastGyro * 1000);
@@ -173,6 +162,24 @@ public class GyroListener implements SensorEventListener {
                     gyro_vec[0] /= gyro_samples;
                     gyro_vec[1] /= gyro_samples;
                     gyro_vec[2] /= gyro_samples;
+
+                    switch(sensor_data) {
+                        case 0:
+                            // Send nothing
+                            break;
+                        case 1:
+                            // Send minimal (compat owoTrack servers)
+                            udpClient.provide_owo_gyro(event.timestamp, gyro_vec);
+                            break;
+                        case 2:
+                            if (event.sensor.getType() == Sensor.TYPE_GYROSCOPE)  {
+                                udpClient.provide_gyro(event.timestamp, gyro_vec);
+                            }
+                            else {
+                                udpClient.provide_uncalib_gyro(event.timestamp, gyro_vec);
+                            }
+                            break;
+                    }
 
                     updateMadgwick(event.timestamp);
                     elapsed_gyro_time = 0;
@@ -207,15 +214,22 @@ public class GyroListener implements SensorEventListener {
 
             accel_vec = vec;
 
-            if (send_raw_sensors) {
-                if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER)
-                {
-                    udpClient.provide_accel(event.timestamp, vec);
-                }
-                else
-                {
-                    udpClient.provide_uncalib_accel(event.timestamp, vec);
-                }
+            switch(sensor_data) {
+                case 0:
+                    // Send nothing
+                    break;
+                case 1:
+                    // Send minimal (compat owoTrack servers)
+                    udpClient.provide_owo_accel(event.timestamp, lin_accel_vec);
+                    break;
+                case 2:
+                    if (event.sensor.getType() == Sensor.TYPE_ACCELEROMETER) {
+                        udpClient.provide_accel(event.timestamp, vec);
+                    }
+                    else {
+                        udpClient.provide_uncalib_accel(event.timestamp, vec);
+                    }
+                    break;
             }
 
         } else if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD
@@ -227,17 +241,22 @@ public class GyroListener implements SensorEventListener {
 
             mag_vec = vec;
 
-            if (send_raw_sensors) {
-                if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD)
-                {
-                    udpClient.provide_mag(event.timestamp, vec);
-                }
-                else
-                {
-                    udpClient.provide_uncalib_mag(event.timestamp, vec);
-                }
+            switch(sensor_data) {
+                case 0:
+                    // Send nothing
+                    break;
+                case 1:
+                    // Send minimal (compat owoTrack servers)
+                    break;
+                case 2:
+                    if (event.sensor.getType() == Sensor.TYPE_MAGNETIC_FIELD) {
+                        udpClient.provide_mag(event.timestamp, vec);
+                    }
+                    else {
+                        udpClient.provide_uncalib_mag(event.timestamp, vec);
+                    }
+                    break;
             }
-
         }
     }
 

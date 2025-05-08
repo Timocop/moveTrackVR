@@ -522,6 +522,22 @@ public class UDPGyroProviderClient {
         }
     }
 
+    public void provide_owo_accel(long timestamp, float[] accel_v) {
+        synchronized (__lock) {
+            provide_sensor(timestamp, accel_v, 3, UDPPackets.ACCEL, false);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
+    }
+
+    public void provide_owo_gyro(long timestamp, float[] gyro_v) {
+        synchronized (__lock) {
+            provide_sensor(timestamp, gyro_v, 3, UDPPackets.GYRO, false);
+            num_packetsend++;
+            last_packetsend_time = System.currentTimeMillis();
+        }
+    }
+
     public void provide_gyro(long timestamp, float[] gyro_v) {
         synchronized (__lock) {
             provide_sensor(timestamp, gyro_v, 3, UDPPackets.CALIBRATED_GYRO, true);

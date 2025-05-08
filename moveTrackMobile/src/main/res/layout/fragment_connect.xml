@@ -184,20 +184,43 @@
                 android:layout_height="1dp"
                 android:background="?android:attr/listDivider" />
 
-            <Switch
-                android:id="@+id/editRawData"
+            <RadioGroup
                 android:layout_width="match_parent"
-                android:layout_height="wrap_content"
-                android:text="Include Raw Sensor Data"
-                android:textAppearance="@style/TextAppearance.AppCompat.Body1"
-                android:textSize="16sp" />
+                android:layout_height="wrap_content">
+
+                <TextView
+                    android:id="@+id/textView9"
+                    android:layout_width="match_parent"
+                    android:layout_height="wrap_content"
+                    android:text="Additional Sensor Data"
+                    android:textAppearance="@style/TextAppearance.AppCompat.Body1"
+                    android:textSize="16sp" />
+
+                <RadioButton
+                    android:id="@+id/radioSensordata0"
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:text="Disabled" />
+
+                <RadioButton
+                    android:id="@+id/radioSensordata1"
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:text="(owoTrack) Gyroscope, Linear Acceleration" />
+
+                <RadioButton
+                    android:id="@+id/radioSensordata2"
+                    android:layout_width="match_parent"
+                    android:layout_height="34dp"
+                    android:text="Gyroscope, Accelerometer, Magnetometer" />
+            </RadioGroup>
 
             <TextView
                 android:id="@+id/textView8"
                 android:layout_width="match_parent"
                 android:layout_height="wrap_content"
                 android:drawableStart="@android:drawable/ic_menu_info_details"
-                android:text="Also send raw gyroscope, accelerometer and magetometer data when enabled."
+                android:text="Send additional sensor data if the server requires those."
                 android:textStyle="italic" />
 
         </LinearLayout>

@@ -89,7 +89,7 @@ public class AutoDiscoverer {
         mainIntent.putExtra("magnetometer", configSettings.magnetometerEnabled);
         mainIntent.putExtra("madgwickbeta", configSettings.madgwickBeta);
         mainIntent.putExtra("stabilization", configSettings.stabilization);
-        mainIntent.putExtra("rawsensor", configSettings.rawSensors);
+        mainIntent.putExtra("sensordata", configSettings.sensorData);
         mainIntent.putExtra("smartcorrection", configSettings.smartCorrection);
 
         // start service
@@ -146,7 +146,7 @@ public class AutoDiscoverer {
         public boolean magnetometerEnabled;
         public float madgwickBeta;
         public boolean stabilization;
-        public boolean rawSensors;
+        public int sensorData;
         public boolean smartCorrection;
     }
 

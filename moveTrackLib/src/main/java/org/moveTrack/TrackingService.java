@@ -78,7 +78,7 @@ public class TrackingService extends Service {
         cfgSettings.magnetometerEnabled = data.getBoolean("magnetometer");
         cfgSettings.madgwickBeta = data.getFloat("madgwickbeta");
         cfgSettings.stabilization = data.getBoolean("stabilization");
-        cfgSettings.rawSensors = data.getBoolean("rawsensor");
+        cfgSettings.sensorData = data.getInt("sensordata");
         cfgSettings.smartCorrection = data.getBoolean("smartcorrection");
 
         System.out.println("Start command");
