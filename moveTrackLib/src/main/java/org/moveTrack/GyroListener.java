@@ -118,7 +118,7 @@ public class GyroListener implements SensorEventListener {
         last_send_timestamp = 0;
         elapsed_gyro_time = 0;
         filter_madgwick = new MadgwickAHRS(0.0f, madgwick_beta);
-        filter_madgwick_quick = new MadgwickAHRS(0.0f, 0.2f);
+        filter_madgwick_quick = new MadgwickAHRS(0.0f, Math.min(madgwick_beta + 0.2f, 1.0f));
 
         udpClient = udpClient_v;
         udpClient.set_listener(this);
