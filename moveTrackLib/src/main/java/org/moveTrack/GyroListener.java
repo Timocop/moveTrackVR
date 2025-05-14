@@ -44,7 +44,6 @@ public class GyroListener implements SensorEventListener {
     private long last_madgwick_timestamp;
     private long last_gyro_timestamp;
     private long elapsed_gyro_time;
-    private long gyro_samples;
     private int ROTATION_SENSOR_TYPE;
     private String sensor_type = "";
     private MadgwickAHRS filter_madgwick;
@@ -118,7 +117,6 @@ public class GyroListener implements SensorEventListener {
         last_madgwick_timestamp = 0;
         last_send_timestamp = 0;
         elapsed_gyro_time = 0;
-        gyro_samples = 0;
         filter_madgwick = new MadgwickAHRS(0.0f, madgwick_beta);
         filter_madgwick_quick = new MadgwickAHRS(0.0f, 0.9f);
 
@@ -149,19 +147,19 @@ public class GyroListener implements SensorEventListener {
             vec[1] = event.values[1];
             vec[2] = event.values[2];
 
-            gyro_vec[0] += vec[0];
-            gyro_vec[1] += vec[1];
-            gyro_vec[2] += vec[2];
-            gyro_samples++;
-
             if (last_gyro_timestamp != 0) {
-                final float lastGyro = (event.timestamp - last_gyro_timestamp) * NS2S;
-                elapsed_gyro_time += (long) (lastGyro * 1000);
+                final float gyroDelta = (event.timestamp - last_gyro_timestamp) * NS2S;
 
-                if (elapsed_gyro_time > MADGWICK_UPDATE_RATE_MS && gyro_samples > 0) {
-                    gyro_vec[0] /= gyro_samples;
-                    gyro_vec[1] /= gyro_samples;
-                    gyro_vec[2] /= gyro_samples;
+                gyro_vec[0] += vec[0] * gyroDelta;
+                gyro_vec[1] += vec[1] * gyroDelta;
+                gyro_vec[2] += vec[2] * gyroDelta;
+
+                if ((event.timestamp - elapsed_gyro_time) > MADGWICK_UPDATE_RATE_MS) {
+                    float totalTime = (event.timestamp - elapsed_gyro_time) * NS2S;
+
+                    gyro_vec[0] /= totalTime;
+                    gyro_vec[1] /= totalTime;
+                    gyro_vec[2] /= totalTime;
 
                     switch(sensor_data) {
                         case 0:
@@ -182,12 +180,11 @@ public class GyroListener implements SensorEventListener {
                     }
 
                     updateMadgwick(event.timestamp);
-                    elapsed_gyro_time = 0;
+                    elapsed_gyro_time = event.timestamp;
 
                     gyro_vec[0] = 0.f;
                     gyro_vec[1] = 0.f;
                     gyro_vec[2] = 0.f;
-                    gyro_samples = 0;
                 }
             }
 
