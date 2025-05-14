@@ -101,11 +101,11 @@ public class ConnectFragment extends GenericBindingFragment {
         if (sensorDataDisabled != null)
             sensorDataDisabled.setEnabled(!to);
 
+        if (sensorDataCompat != null)
+            sensorDataCompat.setEnabled(!to);
+
         if (sensorDataAll != null)
             sensorDataAll.setEnabled(!to);
-
-        if (sensorDataDisabled != null)
-            sensorDataDisabled.setEnabled(!to);
 
         if (smartCorrection != null)
             smartCorrection.setEnabled(!to);
