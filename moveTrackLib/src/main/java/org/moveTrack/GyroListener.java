@@ -413,8 +413,15 @@ public class GyroListener implements SensorEventListener {
     }
 
     private float getAdaptiveBeta(float deltaTime) {
-        if (!use_stabilization)
-            return madgwick_beta;
+        float beta = madgwick_beta;
+
+        if (!use_stabilization) {
+            // Do not allow no drift correction
+            if (beta < 0.01f)
+                beta = 0.01f;
+
+            return beta;
+        }
 
         float gyro_sq = (float) Math.sqrt(gyro_vec[0] * gyro_vec[0] + gyro_vec[1] * gyro_vec[1] + gyro_vec[2] * gyro_vec[2]) * deltaTime;
         gyro_sq = (float) (gyro_sq * (180.f / Math.PI));
@@ -425,7 +432,7 @@ public class GyroListener implements SensorEventListener {
         if (beta_multi > 1.0f)
             beta_multi = 1.f;
 
-        return (madgwick_beta * beta_multi);
+        return (beta * beta_multi);
     }
 
 
