@@ -154,7 +154,7 @@ public class GyroListener implements SensorEventListener {
                 gyro_vec[1] += vec[1] * gyroDelta;
                 gyro_vec[2] += vec[2] * gyroDelta;
 
-                if ((event.timestamp - elapsed_gyro_time) > MADGWICK_UPDATE_RATE_MS) {
+                if ((event.timestamp - elapsed_gyro_time) * NS2S > MADGWICK_UPDATE_RATE_MS / 1000.0f) {
                     float totalTime = (event.timestamp - elapsed_gyro_time) * NS2S;
 
                     gyro_vec[0] /= totalTime;
