@@ -15,7 +15,7 @@ public class GyroListener implements SensorEventListener {
     private static final float NS2S = 1.0f / 1000000000.0f;
 
     private static final long MADGWICK_UPDATE_RATE_MS = 5;
-    private static final long MADGWICK_SMARTRESET_MS = 500;
+    private static final long MADGWICK_SMARTRESET_MS = 2000;
     private static final float MADGWICK_SMARTRESET_GRAV_STABLE = 0.25f;
     private static final float MADGWICK_SMARTRESET_DEG_MIN = 5.0f;
     private static final float MADGWICK_SMARTRESET_DEG_MAX = 25.0f;
@@ -118,7 +118,7 @@ public class GyroListener implements SensorEventListener {
         last_send_timestamp = 0;
         elapsed_gyro_time = 0;
         filter_madgwick = new MadgwickAHRS(0.0f, madgwick_beta);
-        filter_madgwick_quick = new MadgwickAHRS(0.0f, 0.9f);
+        filter_madgwick_quick = new MadgwickAHRS(0.0f, 0.2f);
 
         udpClient = udpClient_v;
         udpClient.set_listener(this);
